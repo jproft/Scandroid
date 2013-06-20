@@ -1,4 +1,4 @@
-# scanstc.py 1.2
+# scanstc.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman
@@ -102,6 +102,12 @@ class MyTextSTC(stc.StyledTextCtrl):
         # following shd probably have settable fontsize per screen like TCs above
         self.StyleSetSpec(stc.STC_STYLE_DEFAULT, "size:14,face:Courier")
         self.Bind(stc.EVT_STC_DOUBLECLICK, self.OnDoubleClick)
+        ##bug: after line is double-clicked up to scansion work area, it becomes
+        ##impossible to type in the main window
+        ##first experiment in fixing this: bind an on-click event, and have its
+        ##method simply reassert focus
+        #self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseClickInTextWindow)
+        ##well, that didn't work
         wx.EVT_CHAR(self, self.OnKeyDown)
 
     def GetStringSelection(self): return self.GetSelectedText()

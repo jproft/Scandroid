@@ -1,4 +1,4 @@
-# scanpositions.py 1.2
+# scanpositions.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman

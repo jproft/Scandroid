@@ -1,4 +1,4 @@
-# scandictfuncs.py 1.2
+# scandictfuncs.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman
@@ -62,7 +62,7 @@ class ScanDict:
                 f = open(dlg.GetPath())
                 dlg.Destroy()
             else:				# if can't find/open, should put up warning!
-                dlg.Destroy()
+                dlg.Destroy()                
                 return				# keep running, but crippled (how REPORT this?)
         for line in f:
             tokens = line.split()		# apostrophes do NOT divide tokens

@@ -1,5 +1,5 @@
 #### -*- coding: 'utf-8' -*-	# SEEMS TO HAVE NO EFFECT
-# syllables.py 1.2
+# syllables.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman

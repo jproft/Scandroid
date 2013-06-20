@@ -1,4 +1,4 @@
-# scanfuncs.py 1.2
+# scanfuncs.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman
@@ -28,7 +28,7 @@ from scanutilities import *
 # only at beginning of iambic/anapestic process
 lineDat = { 'linetext': '', 'lfeet': 5, 'lfeetset':False, 'footlist':[],
             'lastfoot': '', 'hremain': (0,0), 'midremain': (0,0), 'promcands':[] }
-
+fo = open("foo.txt", "wb")
 
 class ScansionMachine:
     
@@ -164,6 +164,7 @@ class ScansionMachine:
         linelength not set, figure it (not reliably!) and set it for step-by-steps.
         Note that when call is from DeduceParameters, lfeetset is *false*.
         """
+  ##      whichAlgorithm = 1                     #TESTTESTTEST
         if not lineDat['lfeetset']:
             if len(scansion) // 2 >= 2: 
                 linefeet = len(scansion) // 2	# crude! but can't find reliable improvement
@@ -311,6 +312,7 @@ class ScansionMachine:
         here, though presumably to no avail. Called only from Frame's OnStepButton 
         function. Does not change any values in global lineDat.
         """
+        #fo.write("\n",+failedAlgorithm+" - "+scanline)
         logger.ExpRestartNewIambicAlg(failedAlgorithm, scanline)
         self.P.charlist = self.lexData[:]
         lineDat['footlist'] = []		# prevent detritus in the clean restart
@@ -320,6 +322,14 @@ class ScansionMachine:
 
 ## - - - - - - - - iambic Algorithm 1: Corral the Exceptional - - - - - - - - - - - 
     def WeirdEnds(self, logger):
+        """
+        Parse out unusual starting and ending feet.
+        
+        We look first for end-of-line peculiarities, and then the start-of-line 
+        defectives, because we can't guess well about headless lines 
+        without knowing what the line's "normal" length is, and that's 
+        affected by these extra-metrical syllabic extensions at the end.
+        """
         endfeet = ['x/xx', 'xx/x', 'x/x', '//x']
         marks = self.P.GetMarks()
         normlen = lineDat['lfeet'] * 2
@@ -333,11 +343,16 @@ class ScansionMachine:
             lineDat['lastfoot'] = footDict[lastfootstring]
             self.P.AddFootDivMark(len(marks) - len(lastfootstring))
         else: lineDat['lastfoot'] = ''
-        if currlen - len(lineDat['lastfoot']) <= normlen - 2 and \
+        # FOLLOWING IF AND LINES IN IT, BUT NOT THE ELSE, ALL CHANGED TO FIX OLD
+        # BUG -- COORDINATE!
+        if currlen - len(lastfootstring) <= normlen - 2 and \
                                 (marks.startswith('/x/x') or marks.startswith('/xxx')):
             lineDat['footlist'].append('defective')
+            self.P.AddFootDivMark(1)
             lineDat['midremain'] = (1, currlen - len(lastfootstring))
         else: lineDat['midremain'] = (0, currlen - len(lastfootstring))
+        # despite the argument here, we call the Explainer for EITHER a headless 
+        # line or a strange last foot
         logger.ExpWeirdEnds(lineDat['lastfoot'], lineDat['footlist'])
         return self.P.GetScanString(), True
     

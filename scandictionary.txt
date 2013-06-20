@@ -33,6 +33,13 @@
 # may be in for major changes of other kinds), in particular the outlawing of
 # pyrrhics before trochees, strongly suggest that the forms of "to be" should
 # be recorded as ambiguous. That's implemented here, at first experimentally.
+#
+# Further note: I've found cases where this is wrong, beginning with the first
+# of the sample lines the program offers; "This is a line…" should never begin 
+# with a trochee.  So I changed the entry for "is."  This is worth a lot more 
+# experimentation.  It's quite possible that the whole *-for-ambiguous move
+# was a mistake.  Now I've taken the asterisks off "had/have/hath/has"; probably 
+# I should get rid of them all.
 
 a							a
 able						A ble
@@ -329,10 +336,10 @@ gravitated				GRA vi tat ed
 gravitating				GRA vi tat ing
 guest						GUEST
 guitar					gui TAR
-had						had*
-has						has*
-hath						hath*
-have						have*
+had						had
+has						has
+hath						hath
+have						have
 he							he*
 hectoring				HEC tor ing		# a test for /xing would be nice
 her						her
@@ -393,7 +400,7 @@ interval					IN ter val
 into						in to				# ? or "hovering"
 involve					in VOLVE			# involves, involved
 iron						IRON
-is							is*
+is							is
 isolated					I so lat ed
 it							it
 it's						it's

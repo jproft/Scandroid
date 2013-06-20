@@ -1,4 +1,4 @@
-# scanstrings.py 1.2
+# scanstrings.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman
@@ -17,17 +17,20 @@ abouttxt = \
 """
     ~      ~      ~      ~      ~      ~      ~      ~      ~
 
-scansion of English metrical verse for Mac and Windows
+scansion of English metrical verse 
+for Mac and Windows
 
     ~      ~      ~      ~      ~      ~      ~      ~      ~
 
-version 1.2, Copyright (C) 2005 Charles Hartman
+version 1.5, Copyright (C) 2005 Charles Hartman
+Programming contributions by Jim O'Connor
 
-the Scandroid comes with ABSOLUTELY NO WARRANTY;
-for details, see the GNU Public License in the file "gpl.txt"
-that accompanies the program. This software is OSI Certified 
-Open Source Software. OSI Certified is a certification mark 
-of the Open Source Initiative.
+the Scandroid comes with ABSOLUTELY NO 
+WARRANTY; for details, see the GNU Public License 
+in the file "gpl.txt" that accompanies the program. 
+This software is OSI Certified Open Source Software. 
+OSI Certified is a certification mark of the Open Source 
+Initiative.
 """
 
 InitialText = \
@@ -188,7 +191,7 @@ class Explainer:
             self.Explain("  |  ".join([f for f in listOfFeet]))
             if subs > 1: s3 = "  |\n%s substitute feet" % subs
             else: s3 = "  |\none substitute foot"
-            s4 = " -- a crude measure of complexity"
+            s4 = " -- a crude measure of complexity\n\nDONE"
             self.Explain(''.join([s3, s4]))
             
     def ExpRestartNewIambicAlg(self, algorithm, scanline):
