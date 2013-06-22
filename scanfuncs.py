@@ -70,7 +70,7 @@ class ScansionMachine:
             if not wORD: continue	# sre.split can produce empty returns
             # catch clitics for non-syllabic treatment, defined as:
             anyvowels = self.vowelRE.search(wORD)
-            if not anyvowels and '\'' in wORD:
+            if not anyvowels:
                 lineindex += len(wORD)
                 continue
             # punct and whitespace to Positioner, exc. words like "'twas"
@@ -164,7 +164,7 @@ class ScansionMachine:
         linelength not set, figure it (not reliably!) and set it for step-by-steps.
         Note that when call is from DeduceParameters, lfeetset is *false*.
         """
-  ##      whichAlgorithm = 1                     #TESTTESTTEST
+        ## whichAlgorithm = 1           # TESTTESTTEST
         if not lineDat['lfeetset']:
             if len(scansion) // 2 >= 2: 
                 linefeet = len(scansion) // 2	# crude! but can't find reliable improvement
@@ -309,10 +309,10 @@ class ScansionMachine:
         Since ChooseAlgorithm almost always prevents failures, this is called 
         almost exclusively if user forces choice to the other algorithm and it 
         fails. If both fail, ChooseAlgorithm will pick one which will also arrive 
-        here, though presumably to no avail. Called only from Frame's OnStepButton 
+        here, though presumably to no avail. Called only from Frame's OnStepBtn 
         function. Does not change any values in global lineDat.
         """
-        #fo.write("\n",+failedAlgorithm+" - "+scanline)
+        #fo.write("\n",+failedAlgorithm+" - "+scanline) 
         logger.ExpRestartNewIambicAlg(failedAlgorithm, scanline)
         self.P.charlist = self.lexData[:]
         lineDat['footlist'] = []		# prevent detritus in the clean restart
@@ -324,10 +324,9 @@ class ScansionMachine:
     def WeirdEnds(self, logger):
         """
         Parse out unusual starting and ending feet.
-        
-        We look first for end-of-line peculiarities, and then the start-of-line 
-        defectives, because we can't guess well about headless lines 
-        without knowing what the line's "normal" length is, and that's 
+        We look first for end-of-line peculiarities, and then the start-of-line
+        defectives, because we can't guess well about headless lines
+        without knowing what the line's "normal" length is, and that's
         affected by these extra-metrical syllabic extensions at the end.
         """
         endfeet = ['x/xx', 'xx/x', 'x/x', '//x']
@@ -335,7 +334,7 @@ class ScansionMachine:
         normlen = lineDat['lfeet'] * 2
         currlen = len(marks)
         lastfootstring = ''
-        if currlen > normlen + 1 and marks[-4:] in endfeet: 
+        if currlen > normlen + 1 and marks[-4:] in endfeet:
             lastfootstring = marks[-4:]
         elif currlen >= normlen and marks[-3:] in endfeet:
             lastfootstring = marks[-3:]
@@ -351,7 +350,7 @@ class ScansionMachine:
             self.P.AddFootDivMark(1)
             lineDat['midremain'] = (1, currlen - len(lastfootstring))
         else: lineDat['midremain'] = (0, currlen - len(lastfootstring))
-        # despite the argument here, we call the Explainer for EITHER a headless 
+        # despite the argument here, we call the Explainer for EITHER a headless
         # line or a strange last foot
         logger.ExpWeirdEnds(lineDat['lastfoot'], lineDat['footlist'])
         return self.P.GetScanString(), True
@@ -613,7 +612,8 @@ class ScansionMachine:
         else:
             (needfeet, excess) = divmod(numsyls, 3)
             # assume anapestic lines may be short but never long, exc. terminals
-            if scansion[-1] == 'x': excess -= 1	# term. slack doesn't add feet
+            if scansion:
+                if scansion[-1] == 'x': excess -= 1	# term. slack doesn't add feet
             if excess > 0: needfeet += 1		# could be fooled by 3 disyl feet!
             altlen = AltLineLenCalc(scansion)
             needfeet = max(needfeet, altlen)
@@ -621,20 +621,22 @@ class ScansionMachine:
         if scansion[-2:] == 'xx':		# mark promotion, treat as stressed (x% or /x%)
             scansion = scansion[:-1] + '%'
             self.P.AddScanMark('%', len(scansion)-1)
-        if scansion[-1] == 'x':		# see AnapSubs for special notes on last feet!
-            tailstart = scansion.rfind('/')					# point to penult
-            tailstart = scansion.rfind('/', 0, tailstart)	#   stress in line
-            tail = numsyls - tailstart - 1
-            if AnapSubs.has_key(scansion[-tail:]):
-                lastfoot = AnapSubs[scansion[-tail:]]
-            else:
-                tail += 1		# desperation: one more foot to try
+        if scansion:
+            if scansion[-1] == 'x':		# see AnapSubs for special notes on last feet!
+                tailstart = scansion.rfind('/')					# point to penult
+                tailstart = scansion.rfind('/', 0, tailstart)	#   stress in line
+                tail = numsyls - tailstart - 1
                 if AnapSubs.has_key(scansion[-tail:]):
                     lastfoot = AnapSubs[scansion[-tail:]]
-                else: return []                    # unknown last foot
-            needfeet -= 1
-            numsyls -= tail
-            scansion = scansion[:-tail]
+                else:
+                    tail += 1		# desperation: one more foot to try
+                    if AnapSubs.has_key(scansion[-tail:]):
+                        lastfoot = AnapSubs[scansion[-tail:]]
+                    else: return []                    # unknown last foot
+                needfeet -= 1
+                numsyls -= tail
+                scansion = scansion[:-tail]
+            else: lastfoot = ''
         else: lastfoot = ''
         # dividing point for anapestic steps
         if numsyls > needfeet * 3: return []		# hypermetrical??
@@ -649,7 +651,7 @@ class ScansionMachine:
             if needDisyls > needfeet: return []
             scansion = self.AnapPromoteSlack(scansion)
             numlist = '2' * needDisyls + '3' * (needfeet - needDisyls)
-            listoflists = uniquePermutations(numlist)
+            listoflists = uniquePermutations(numlist) # CAN GO INTO INFINITE LOOP. BAD.
             for pat in listoflists:
                 thislldo = True
                 index = 0

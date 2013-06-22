@@ -18,6 +18,8 @@ import wx
 import wx.stc as stc
 from scanstrings import *
 
+import traceback
+
 NAVKEYS = (wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_UP, wx.WXK_DOWN,
            wx.WXK_HOME, wx.WXK_END, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN,
            wx.WXK_NUMPAD_LEFT, wx.WXK_NUMPAD_RIGHT, wx.WXK_NUMPAD_UP,
@@ -48,7 +50,7 @@ class MyScanTC(MyOneLineTC):
 class MyLineTC(MyOneLineTC):
     def __init__(self, parent, fontsize):
         MyOneLineTC.__init__(self, parent, -1, fontsize)
-        self.AppendText(' Double-click any text line to bring it up here for scanning')
+        self.AppendText(' Double-click any text line to put it here for scanning ')
         self.SetInsertionPoint(0)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
         self.Bind(wx.EVT_RIGHT_DCLICK, self.OnDoubleClick)
@@ -74,7 +76,8 @@ class MyLineTC(MyOneLineTC):
         try:
             result = self.GetParent().SM.SD.EditDict(clicked)
         except: 
-            self.GetParent().ErrorMessage(self.GetParent().SM.SD.EditDict, clicked)
+            #self.GetParent().ErrorMessage(self.GetParent().SM.SD.EditDict, clicked)
+            traceback.print_exc()
             return
         if result:
             self.GetParent().RestartLineAfterCancel()
@@ -108,7 +111,7 @@ class MyTextSTC(stc.StyledTextCtrl):
         ##method simply reassert focus
         #self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseClickInTextWindow)
         ##well, that didn't work
-        wx.EVT_CHAR(self, self.OnKeyDown)
+        wx.EVT_CHAR(self, self.OnKeyDown) 
 
     def GetStringSelection(self): return self.GetSelectedText()
 

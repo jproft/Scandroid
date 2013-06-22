@@ -17,7 +17,7 @@ abouttxt = \
 """
     ~      ~      ~      ~      ~      ~      ~      ~      ~
 
-scansion of English metrical verse 
+scansion of English metrical verse
 for Mac and Windows
 
     ~      ~      ~      ~      ~      ~      ~      ~      ~
@@ -25,11 +25,11 @@ for Mac and Windows
 version 1.5, Copyright (C) 2005 Charles Hartman
 Programming contributions by Jim O'Connor
 
-the Scandroid comes with ABSOLUTELY NO 
-WARRANTY; for details, see the GNU Public License 
-in the file "gpl.txt" that accompanies the program. 
-This software is OSI Certified Open Source Software. 
-OSI Certified is a certification mark of the Open Source 
+the Scandroid comes with ABSOLUTELY NO
+WARRANTY; for details, see the GNU Public License
+in the file "gpl.txt" that accompanies the program.
+This software is OSI Certified Open Source Software.
+OSI Certified is a certification mark of the Open Source
 Initiative.
 """
 
@@ -108,9 +108,11 @@ class Explainer:
 
     def ExpLexStress(self, dictwords, compwords):
         self.Explain("  (CAPS = stressed)\ndict. word stresses: ")
-        self.Explain(str(' / ' + ' / '.join(' '.join(s.encode('utf-8') for s in w) for w in dictwords)) + ' / ')
+        self.Explain(str(' / ' + ' / '.join(' '.join(s.encode('utf-8')
+                                                     for s in w) for w in dictwords)) + ' / ')
         self.Explain("\ncalc. word stresses: ")
-        self.Explain(' / ' + ' / '.join(' '.join(s.encode(defaultEncoding) for s in w) for w in compwords) + ' / ')
+        self.Explain(' / ' + ' / '.join(' '.join(s.encode(defaultEncoding) 
+                                                     for s in w) for w in compwords) + ' / ')
         self.Explain("\nany ambiguous stresses will be resolved in the next step")
         
     def ExpChooseAlg(self, alg, ambigs):
@@ -126,7 +128,7 @@ class Explainer:
         if ambigs > 1: self.Explain(''.join([sambig1, sambig2]))
 
     def ExpWeirdEnds(self, lastfoot, footlist):
-        s1 = "      <begin Algorihm 1: Corral the Weird>"
+        s1 = "      <begin Algorithm 1: Corral the Weird>"
         s2 = "\ncheck line for first/last feet of abnormal length:"
         self.Explain(''.join([s1, s2]))
         if footlist and (footlist[0] == 'defective'): aceph = True
@@ -154,7 +156,7 @@ class Explainer:
         self.Explain(''.join([sall, s1, s2]))
 
     def ExpREMain(self, start, length, tail, feet, totalfeet):
-        s1 = "      <begin Algorihm 2: Maximize the Normal>\nLongest run of "
+        s1 = "      <begin Algorithm 2: Maximize the Normal>\nLongest run of "
         s2 = "iambs (x/) and potential iambs (xx) from syllable %s " % str(start+1)
         s3 = "for %s syllables\n%s syllables left over before " % (length, start)
         s4 = "that and %s syllables after\naccounted for %s " % (tail, feet)

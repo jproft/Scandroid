@@ -1,4 +1,4 @@
-# scandictfuncs.py 1.5
+# dictfuncs.py 1.5
 #
 # the Scandroid
 # Copyright (C) 2005 Charles Hartman
@@ -15,7 +15,7 @@
 import wx
 import os
 
-TEXTDICT = "scandictionary.txt"
+from scandictionary import scandict
 
 # added code by Thomas Heller to find "home" directory (where dictionary
 # should be found), whether running from script or frozen
@@ -34,45 +34,8 @@ class ScanDict:
         self.LoadDictionary()
         
     def LoadDictionary(self):
-        """Find and load the dictionary file, into an internal dictionary.
-        
-        If the dictionary file is not found (on Windows), and user doesn't locate it,
-        we do nothing!. The program builds an empty dictionary and limps along 
-        on calculating syllables and stresses. On Mac, the dictionary is part of
-        the application bundle.
-        """
-        if not self.dictopen:
-            if sys.platform == 'darwin':
-                defdir = os.getcwd()
-                self.dictopen = TEXTDICT
-            elif sys.platform == 'win32':
-                if main_is_frozen(): defdir = os.path.dirname(sys.executable)
-                else: defdir = os.path.dirname(sys.argv[0])
-                self.dictopen = os.path.join(defdir, TEXTDICT)
-            else:
-                sys.exit("Only Mac and Win supported! Sorry!")
-        try:
-            f = open(self.dictopen, 'rU')
-        except IOError:			# dict file has gone astray
-            wildcard = "All files (*.*) | *.*"
-            dlg = wx.FileDialog(None, message="Locate the scandictionary file",
-                                defaultDir=defdir, defaultFile="", wildcard=wildcard,
-                                style=wx.OPEN | wx.CHANGE_DIR)
-            if dlg.ShowModal() == wx.ID_OK:
-                f = open(dlg.GetPath())
-                dlg.Destroy()
-            else:				# if can't find/open, should put up warning!
-                dlg.Destroy()                
-                return				# keep running, but crippled (how REPORT this?)
-        for line in f:
-            tokens = line.split()		# apostrophes do NOT divide tokens
-            if not tokens: continue
-            if tokens[0][0] in '#;>\n' or len(tokens[0]) < 1: continue
-            self.Dict[tokens[0]] = []
-            for t in tokens[1:]:
-                if t[0] in '#;>': break			# comment; skip rest of line
-                self.Dict[tokens[0]].append(t)
-        f.close()
+        """Sets the imported dictionary to self.Dict"""
+        self.Dict = scandict
 
     def EditDict(self, selstring):
         """Show how dict or calculation treats a word, get user's correction.
