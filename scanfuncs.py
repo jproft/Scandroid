@@ -28,7 +28,7 @@ from scanutilities import *
 # only at beginning of iambic/anapestic process
 lineDat = { 'linetext': '', 'lfeet': 5, 'lfeetset':False, 'footlist':[],
             'lastfoot': '', 'hremain': (0,0), 'midremain': (0,0), 'promcands':[] }
-fo = open("foo.txt", "wb")
+#fo = open("foo.txt", "wb")
 
 class ScansionMachine:
     
