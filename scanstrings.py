@@ -24,13 +24,14 @@ for Mac and Windows
 
 version 1.5, Copyright (C) 2005 Charles Hartman
 Programming contributions by Jim O'Connor
+and Julia Proft
 
 the Scandroid comes with ABSOLUTELY NO
 WARRANTY; for details, see the GNU Public License
 in the file "gpl.txt" that accompanies the program.
 This software is OSI Certified Open Source Software.
-OSI Certified is a certification mark of the Open Source
-Initiative.
+OSI Certified is a certification mark of the Open 
+Source Initiative.
 """
 
 InitialText = \
