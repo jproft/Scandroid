@@ -651,7 +651,7 @@ class ScansionMachine:
             if needDisyls > needfeet: return []
             scansion = self.AnapPromoteSlack(scansion)
             numlist = '2' * needDisyls + '3' * (needfeet - needDisyls)
-            listoflists = uniquePermutations(numlist) # CAN GO INTO INFINITE LOOP. BAD.
+            listoflists = uniquePermutations(numlist)
             for pat in listoflists:
                 thislldo = True
                 index = 0

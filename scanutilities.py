@@ -28,13 +28,8 @@ class LineData:
 
 ## our handy helpers from the ActiveState Cookbook site!
 
-# getPermutations() CAN CAUSE AN INFINITE LOOP.
-# I have tried other permutations algorithms,
-# but none of them have prevented the loop,
-# so I'm assuming we will have to change code 
-# elsewhere to stop the looping and crashing.
 def getPermutations(a):		# Shalabh Chaturvedi, AS Cookbook
-    if len(a)==1: yield a
+    if len(a) == 1 or len(a) > 9: yield a
     else:
         for i in range(len(a)):
             this = a[i]
