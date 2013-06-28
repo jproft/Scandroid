@@ -11,22 +11,28 @@ other = ("", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
 # This tuple is used to remove all non-digits from the inputted number.
 digits = ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
              
-def convertNum(n):
+def convertNum(n, year = True):
 
     """Accepts an inputted number as either a string,
-    int, or float (but floats are converted to ints),
+    int, long, or float (it will truncate the decimal),
     and returns that number as a "written-out" string,
     e.g. "123" will become "one hundred twenty-three".
     If a number is longer than nine digits, then it will
     return a string with each of the digits written out,
     e.g. "1-800-867-5309" becomes "one eight zero zero
-    eight six seven five three zero nine"."""
+    eight six seven five three zero nine". Also accepts
+    an addition parameter indicating whether "year mode"
+    should be used, meaning that numbers such as "1814"
+    should be written out as "eighteen fourteen" rather
+    than "one thousand, eight hundred fourteen." Note
+    that the default setting for year mode is True."""
 
     if type(n) == str:
         s = "".join(c for c in n if c in digits)
         p = len(s)
-        n = int(s)
-    elif type(n) == int:
+        if not p: return
+        else: n = int(s)
+    elif type(n) == int or type(n) == long:
         s = str(n)
         p = len(s)
     elif type(n) == float:
@@ -36,14 +42,24 @@ def convertNum(n):
     else:
         return n
 
-    return getNums(p, s)
+    return getNums(p, s, year)
 
 
-def getNums(p, s):
+def getNums(p, s, year):
 
     """Returns the written-out number."""
-    
+
     m, t, h = "", "", ""
+
+    if year:
+        if p == 4:
+            if int(s[1:3]):
+                if not int(s[2]):
+                    z = " o' "
+                else:
+                    z = " "
+                return (onesTensPlaces(s[:2]) +
+                        z + onesTensPlaces(s[2:]))
     if p < 4:
         h = getPlaces(s)
     elif p < 7:
@@ -153,7 +169,7 @@ def concatenateNums(m, t, h):
     elif m: m += ", "
 
     if h == "zero":
-        if m and t: h = ""
+        if m or t: h = ""
     elif "hundred" in h:
         if t: t += ", "
     elif t: t += " "
@@ -169,7 +185,8 @@ def main():
     print("Enter a blank line at any time to quit.")
     done = False
     while not done:
-        number = input(">>> ")
+        try: number = raw_input(">>> ")
+        except: number = input(">>> ")
         if not number: done = True
         else: print(convertNum(number))
     print("Zaijian!")
