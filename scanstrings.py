@@ -53,9 +53,10 @@ footDict = { 'x/':'iamb', 'xx':'pyrrhic', '//':'spondee', '/x':'trochee',
              'x%':'(iamb)', 'xx%':'(anapest)', '%x':'(trochee)',
              'x/xx':'2nd paeon', 'xx/x':'3rd paeon'}
 
-AnapSubs = { 'xx/':'anapest', '/x/':'cretic', 'x//':'bacchius', 'x/':'iamb',
-                 'x%':'(iamb)', 'xx%':'(anapest)', '//':'spondee', 'xx/x':'3rd paeon',
-                'x/x':'amphibrach', '///':'molossus', '/x%':'(cretic)', '//x':'palimbacchius' }
+AnapSubs = { 'xx/':'anapest', '/x/':'cretic', 'x//':'bacchius',
+             'x/':'iamb', 'x%':'(iamb)', 'xx%':'(anapest)',
+             '//':'spondee', 'xx/x':'3rd paeon', 'x/x':'amphibrach',
+             '///':'molossus', '/x%':'(cretic)', '//x':'palimbacchius' }
 ##                'xx':'pyrrhic', 'xxx':'tribrach' }		# experiment!
 
 lineLengthName = ['','','DIMETER','TRIMETER','TETRAMETER','PENTAMETER',
@@ -83,17 +84,23 @@ class Explainer:
         sall2 = "     -- that the basic foot is the "
         siamb = "IAMB (x/).\n"
         sanap = "ANAPEST (xx/).\n"
-        snotset1 = "     -- that the lines are not consistent in length (in feet),\n"
-        snotset2 = "          so it will figure length line by line, not always correctly!"
+        snotset1 = ("     -- that the lines are not consistent "
+                                     + "in length (in feet),\n")
+        snotset2 = ("          so it will figure length line by line, "
+                                     + "not always correctly!")
         sset1 = "     -- that the lines consistently have "
         sset2 = str(linelen)
         sset3 = " feet."
         sall3 = "\nThese conclusions could be wrong. The Scan menu lets you "
         sall4 = "force the choice of basic foot."
-        if metron == 2: self.Explain(''.join([sall1, sall2, siamb]))
-        else: self.Explain(''.join([sall1, sall2, sanap]))
-        if linelenset: self.Explain(''.join([sset1, sset2, sset3, sall3, sall4]))
-        else: self.Explain(''.join([snotset1, snotset2, sall3, sall4]))
+        if metron == 2:
+            self.Explain(''.join([sall1, sall2, siamb]))
+        else:
+            self.Explain(''.join([sall1, sall2, sanap]))
+        if linelenset:
+            self.Explain(''.join([sset1, sset2, sset3, sall3, sall4]))
+        else:
+            self.Explain(''.join([snotset1, snotset2, sall3, sall4]))
 
     ## - - methods explaining normal workings of each step, each algorithm
 
@@ -110,11 +117,12 @@ class Explainer:
     def ExpLexStress(self, dictwords, compwords):
         self.Explain("  (CAPS = stressed)\ndict. word stresses: ")
         self.Explain(str(' / ' + ' / '.join(' '.join(s.encode('utf-8')
-                                                     for s in w) for w in dictwords)) + ' / ')
+                                     for s in w) for w in dictwords)) + ' / ')
         self.Explain("\ncalc. word stresses: ")
         self.Explain(' / ' + ' / '.join(' '.join(s.encode(defaultEncoding) 
-                                                     for s in w) for w in compwords) + ' / ')
-        self.Explain("\nany ambiguous stresses will be resolved in the next step")
+                                      for s in w) for w in compwords) + ' / ')
+        self.Explain("\nany ambiguous stresses will be "
+                     + "resolved in the next step")
         
     def ExpChooseAlg(self, alg, ambigs):
         sall1 = "\nthe Scandroid knows two approaches to dividing the line "
@@ -122,7 +130,8 @@ class Explainer:
         salg1 = "Algorithm 1 (Corral the Weird)"
         salg2 = "Algorithm 2 (Maximize the Normal)"
         sall3 = "\n(you can force the choice; see the Scan menu)"
-        sambig1 = "\n\nthe program also decided one or more ambiguous stresses "
+        sambig1 = ("\n\nthe program also decided one "
+                              + "or more ambiguous stresses ")
         sambig2 = "and adjusted the lexical stresses accordingly"
         if alg == 1: self.Explain(''.join([sall1, sall2, salg1, sall3]))
         else: self.Explain(''.join([sall1, sall2, salg2, sall3]))
@@ -139,8 +148,10 @@ class Explainer:
             if aceph: self.Explain('\nfound acephalous ("headless") line')
             if lastfoot:
                 if lastfoot == '2nd paeon':
-                    self.Explain("\nfound extra slack syllables at end of line; ")
-                else: self.Explain("\nfound extra slack syllable at end of line; ")
+                    self.Explain("\nfound extra slack " +
+                                 "syllables at end of line; ")
+                else: self.Explain("\nfound extra slack " + 
+                                   "syllable at end of line; ")
                 self.Explain("last foot is %s" % lastfoot)
 
     def ExpFootDivision(self, currlen, normlen):
@@ -158,17 +169,21 @@ class Explainer:
 
     def ExpREMain(self, start, length, tail, feet, totalfeet):
         s1 = "      <begin Algorithm 2: Maximize the Normal>\nLongest run of "
-        s2 = "iambs (x/) and potential iambs (xx) from syllable %s " % str(start+1)
-        s3 = "for %s syllables\n%s syllables left over before " % (length, start)
-        s4 = "that and %s syllables after\naccounted for %s " % (tail, feet)
-        s5 = "of %s feet" % totalfeet
+        s2 = ("iambs (x/) and potential iambs (xx) from syllable %s "
+                                                       % str(start+1))
+        s3 = ("for %s syllables\n%s syllables left over before "
+                                                       % (length, start))
+        s4 = ("that and %s syllables after\naccounted for %s " % (tail, feet))
+        s5 = ("of %s feet" % totalfeet)
         self.Explain(''.join([s1, s2, s3, s4, s5]))
 
     def ExpRECleanUp(self, head, tail, extradiv=False):
-        if head: self.Explain("\ndivide extra syllables at start of line into pairs")
+        if head: self.Explain("\ndivide extra syllables at "
+                              + "start of line into pairs")
         if tail: self.Explain("\ndivide extra trailing syllables into pairs")
         if extradiv: 
-            self.Explain("\nget rid of extra foot-division before last syllable")
+            self.Explain("\nget rid of extra foot-division "
+                         + "before last syllable")
         if not head and not tail and not extradiv:
             self.Explain("\nnothing to clean up at the end")
 
@@ -180,7 +195,8 @@ class Explainer:
                 s2 = "\nprobable promoted stress on this syllable:  "
             else: s2 = "\nprobable promoted stresses on these syllables:  "
             self.Explain(''.join([s1, s2]))
-            self.Explain(''.join([''.join([str(p+1), '   ']) for p in promoted]))
+            self.Explain(''.join([''.join([str(p+1), '   '])
+                                         for p in promoted]))
 
     def ExpEndGame(self, listOfFeet, subs):
         if subs > len(listOfFeet):			# NOT >= (5-sub i.p. possible)
@@ -254,4 +270,5 @@ class Explainer:
         self.Explain('  |  '.join([f for f in footlist]))
         self.Explain("  |")
         if footAdjust:
-            self.Explain("\n(replaced iamb+cretic with bacchius+iamb for regularity)")
+            self.Explain("\n(replaced iamb+cretic with "
+                         + "bacchius+iamb for regularity)")

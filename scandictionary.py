@@ -46,11 +46,11 @@
 # be recorded as ambiguous. That's implemented here, at first experimentally.
 #
 # Further note: I've found cases where this is wrong, beginning with the first
-# of the sample lines the program offers; "This is a line..." should never begin 
-# with a trochee.  So I changed the entry for "is."  This is worth a lot more 
-# experimentation.  It's quite possible that the whole *-for-ambiguous move
-# was a mistake.  Now I've taken the asterisks off "had/have/hath/has"; probably 
-# I should get rid of them all.
+# of the sample lines the program offers; "This is a line..." should never 
+# begin with a trochee.  So I changed the entry for "is."  This is worth a lot
+# more experimentation.  It's quite possible that the whole *-for-ambiguous
+# move was a mistake.  Now I've taken the asterisks off "had/have/hath/has";
+# probably I should get rid of them all.
 
 scandict = {
 "a": ["a"],

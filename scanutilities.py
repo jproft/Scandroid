@@ -53,7 +53,8 @@ def dictinvert(d):			# Jason Drew from AS Cookbook
     return inv
 
 def footfinder(fDict, scansion, chunksize, startpoint, endpoint):
-    """Generator to return a next foot name, updating index within (part of) scanline.
+    """Generator to return a next foot name,
+    updating index within (part of) scanline.
 
     If endpoint not given, set to end of scansion string. Indices figured and
     yielded are within that string; if it's offset from the beginning of the
@@ -75,10 +76,10 @@ def longestMatch(rx, s):			# code by Kent Johnson from python-list
     one-line magic I was trying to refine . . .
     
     Returns (start, length) for the match or (None, None) if no match found.
-    Condition that sets length can prefer either first or last "longest"; adopting
-    the latter for now on the general principle that lines tend to be more
-    regular at their ends than at their beginnings (how general is this?), and
-    on the ground that my RE step methods handle the pre-regular head of a
+    Condition that sets length can prefer either first or last "longest";
+    adopting the latter for now on the general principle that lines tend to be
+    more regular at their ends than at their beginnings (how general is this?),
+    and on the ground that my RE step methods handle the pre-regular head of a
     line slightly better than the post-regular tail.
     """
     start = length = current = 0
@@ -88,7 +89,8 @@ def longestMatch(rx, s):			# code by Kent Johnson from python-list
         mStart, mEnd = m.span()
         current = mStart + 1
         # it is not at all clear which of these is more generally correct!
-        # adopting the latter on rough principle that lines' ends are more regular (?)
+        # adopting the latter on rough principle
+        # that lines' ends are more regular (?)
         #if (mEnd - mStart) > length:		# returns FIRST longest
         if (mEnd - mStart) >= length:	# returns LAST longest
             start = mStart
@@ -100,10 +102,10 @@ def longestMatch(rx, s):			# code by Kent Johnson from python-list
 def AltLineLenCalc(lexmarks):
     """Figure line-length in feet by counting non-adjacent stresses.
     
-    This is not reliable in itself, but it's good at establishing a minimum 
-    number of feet. It helps little with iambics, but more with some anapestics.
-    So at present it's used in scanAnapestics, in a max() along with the other
-    way of calculating length.
+    This is not reliable in itself, but it's good at establishing a 
+    minimum number of feet. It helps little with iambics, but more
+    with some anapestics. So at present it's used in scanAnapestics,
+    in a max() along with the other way of calculating length.
     
     Specialization: The elimination of a stress at the beginning of the line 
     works well with anapestics, but would not work at all with iambics.

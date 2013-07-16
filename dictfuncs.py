@@ -41,11 +41,11 @@ class ScanDict:
         """Show how dict or calculation treats a word, get user's correction.
         
         If user enters new syllabification and stress for word, enter the word
-        (if it was not in the dictionary) or the corrected syl-list (if it was).
+        (if it wasn't in the dictionary) or the corrected syl-list (if it was).
         Otherwise leave it alone. Called by mouse-drive function in the
         StyledTextCtrl in scanstc.py.
         """
-        word = selstring.lower()			# stripped in scanstc.py before it gets here
+        word = selstring.lower()  # stripped in scanstc.py before it gets here
         if self.Dict.has_key(word): syls = self.Dict[word]
         else: syls = self.mom.S.Syllabize(word)
         s = ''
@@ -57,8 +57,8 @@ class ScanDict:
             # should undoubtedly do some very careful checking of this!
             if newsyls:
                 syls = newsyls
-                self.Dict[word] = syls.split()		# change dict but NOT SAVED TO FILE
-            dlg.Destroy()
+                self.Dict[word] = syls.split() # change dict but
+            dlg.Destroy()                      # NOT SAVED TO FILE
             return True
         else:
             dlg.Destroy()
@@ -66,57 +66,71 @@ class ScanDict:
         
 
 class DictEditDialog(wx.Dialog):
-    def __init__(self, parent, id, wordSyls):
-        wx.Dialog.__init__(self, None, id, style=wx.DEFAULT_DIALOG_STYLE |
-                           wx.RESIZE_BORDER)
-        self.textline1 = wx.StaticText(self, -1, "     The Scandroid thinks the word     ")
-        self.textline2 = wx.StaticText(self, -1, "has this pattern of syllables")
-        self.textline3 = wx.StaticText(self, -1, "and stress:")
-        self.wordAsKnown = wx.TextCtrl(self, -1, "")
-        self.wordAsKnown.AppendText(wordSyls)
-        self.wordAsKnown.SetEditable(0)
-        self.textline4 = wx.StaticText(self, -1, "Type in the corrected form,")
-        self.textline5 = wx.StaticText(self, -1, "separating syllables with	spaces,")
-        self.textline6 = wx.StaticText(self, -1, "the stressed one ALL CAPS:")
+    def __init__(self, parent, id, syls):
+        wx.Dialog.__init__(self, None, id,
+                           style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
+
+        instructions = ("The Scandroid thinks the word",
+                        "has this pattern of syllables",
+                        "and stress:\n",
+                        "Type in the corrected form,",
+                        "separating syllables with spaces,",
+                        "the stressed one ALL CAPS:\n")
+        textlines = []
+        for line in instructions:
+            text = wx.StaticText(self, -1, line)
+            textlines.append((text, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3))
+            
+        self.wordAsKnown = wx.TextCtrl(self, -1, syls)
         self.wordCorrected = wx.TextCtrl(self, -1, "")
+ 
         self.OKbutton = wx.Button(self, wx.ID_OK, " OK ")
-        self.OKbutton.SetDefault()
         self.CancelButton = wx.Button(self, wx.ID_CANCEL, " Cancel ")
-        mainsizer = wx.BoxSizer(wx.VERTICAL)
-        mainsizer.Add((20, 20), 0)
-        mainsizer.Add(self.textline1, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        mainsizer.Add(self.textline2, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        mainsizer.Add(self.textline3, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        mainsizer.Add((20,20),0)
-        field1sizer = wx.BoxSizer(wx.HORIZONTAL)
-        field1sizer.Add((40,20),0)
-        field1sizer.Add(self.wordAsKnown, 3, wx.EXPAND)
-        field1sizer.Add((40,20,),0)
-        mainsizer.Add(field1sizer, 0, wx.EXPAND, 3)
-        mainsizer.Add((20,20),0)
-        mainsizer.Add(self.textline4, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        mainsizer.Add(self.textline5, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        mainsizer.Add(self.textline6, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 3)
-        mainsizer.Add((20,20), 0)
-        field2sizer = wx.BoxSizer(wx.HORIZONTAL)
-        field2sizer.Add((40,20),0)
-        field2sizer.Add(self.wordCorrected, 3, wx.EXPAND)
-        field2sizer.Add((40,20),0)
-        mainsizer.Add(field2sizer, 0, wx.EXPAND, 3)
-        mainsizer.Add((20,20),0)
+ 
+        items = ((self.wordAsKnown, 3, wx.EXPAND),
+                 (self.wordCorrected, 3, wx.EXPAND),
+                 (self.OKbutton, 0, wx.ALIGN_LEFT),
+                 (self.CancelButton, 0, wx.ALIGN_RIGHT))
+                 
+        spacers = (((40, 20), 0), ((30, 30), 0), ((20, 20), 0))
+ 
+        fieldsizers = []
+        for item in items[:2]:
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(*spacers[0])
+            sizer.Add(*item)
+            sizer.Add(*spacers[0])
+            fieldsizers.append((sizer, 0, wx.EXPAND, 3))
+        
         buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonsizer.Add((30,30),0)
-        buttonsizer.Add(self.OKbutton, 0, wx.ALIGN_LEFT)
-        buttonsizer.Add((20,30),0)
-        buttonsizer.Add(self.CancelButton, 0, wx.ALIGN_RIGHT)
-        mainsizer.Add(buttonsizer, 0, wx.ALIGN_CENTER); mainsizer.AddSpacer((20,20),0)
+        buttonsizer.Add(*spacers[1])
+        for item in items[2:]:
+            buttonsizer.Add(*item)
+            buttonsizer.Add(*spacers[1])
+        buttonsizer = (buttonsizer, 0, wx.EXPAND, 3)
+        
+        components = (textlines[0], textlines[1], textlines[2],
+                      fieldsizers[0], textlines[3], textlines[4],
+                      textlines[5], fieldsizers[1], buttonsizer)
+        
+        mainsizer = wx.BoxSizer(wx.VERTICAL)
+        mainsizer.Add(*spacers[2])
+        for cmpnt in components:
+            mainsizer.Add(*cmpnt)
+            if cmpnt not in textlines:
+                mainsizer.Add(*spacers[2])
+        
         self.Bind(wx.EVT_BUTTON, self.OnOK, self.OKbutton)
         self.SetSizer(mainsizer); self.SetAutoLayout(True)
         mainsizer.Fit(self)
+        
+        self.wordAsKnown.SetEditable(0)
         self.wordCorrected.SetFocus()
+        self.OKbutton.SetDefault()
         
     def OnOK(self, event):
-        """When DictEditDialog's OK button is pressed, save the selected word."""
+        """When DictEditDialog's OK button is pressed,
+        save the selected word."""
         self.CorrectedWord = self.wordCorrected.GetValue()
         event.Skip()
 

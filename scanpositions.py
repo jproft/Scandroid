@@ -31,7 +31,7 @@ class Positioner:
     def __init__(self):
         self.charlist = []		# one item per char in the printed line of text
         self.sylmids = []		# indices of positions of middles of syllables
-        self.footplace = [0]		# indices of positions of possible foot divs
+        self.footplace = [0]	# indices of positions of possible foot divs
         self.possLexicals = []	# list of scanstrings, ambiguities resolved
         self.punctAt = []		# to check on caesurae
         self.promCands = []
@@ -39,7 +39,7 @@ class Positioner:
         self.scanMarkMoved = False	# silly flag; see FindEmptyPosForMark
     
     def NewLine(self, linelength):
-        self.charlist = (linelength + 1) * [' ']	# extra for possible footdiv
+        self.charlist = (linelength + 1) * [' '] # extra for possible footdiv
         self.sylmids = []
         self.footplace = [0]			# keep 0-based, parallel to sylmids[]
         self.possLexicals = []
@@ -48,7 +48,8 @@ class Positioner:
         self.wordbounds = []
 
     def AddWord(self, syls, linePos):
-        """Add data of syllables of a word to this class's various data structures.
+        """Add data of syllables of a word to
+        this class's various data structures.
         
         This function has grown. It tracks not only the midpoint of each 
         syllable in the printed line (sylmids) and its end (a possible foot-
@@ -98,15 +99,17 @@ class Positioner:
         return linePos
 
     def LocateFootDivPositions(self):
-        """Record positions for potential foot divs halfway between syllable middles.
+        """Record positions for potential foot
+        divs halfway between syllable middles.
 
-        The array of positions is initialized with 0 by NewLine; so item n in this
-        array corresponds to a foot-division spot *before* (at the beginning of)
-        syllable n as recorded in self.sylmids. (Arbitrary but consistent.)
+        The array of positions is initialized with 0 by NewLine;
+        so item n in this array corresponds to a foot-division
+        spot *before* (at the beginning of) syllable n as recorded
+        in self.sylmids. (Arbitrary but consistent.)
         """
         for syl in range(len(self.sylmids) - 1):
             self.footplace.append(self.sylmids[syl] + (self.sylmids[syl + 1]
-                                                       - self.sylmids[syl]) // 2)
+                                                   - self.sylmids[syl]) // 2)
         self.footplace.append(len(self.charlist) - 1)
     
     def AddPunct(self, str, linePos):
@@ -147,13 +150,13 @@ class Positioner:
         scansion mark in this position needs to be moved leftward to be saved
         and still in its correct foot. If the position we want has a scansion 
         mark in it, try moving the footdiv right by one, except in the special
-        case of start of line (see below). If that position is full too, we look
-        leftward for the first available unmarked space and move everything
-        between there and here left by one, freeing our position.
+        case of start of line (see below). If that position is full too,
+        we look leftward for the first available unmarked space and move
+        everything between there and here left by one, freeing our position.
         
         Another twist: iambic algorithm 2 can temporarily put a footdiv mark
-        at the very start of the line. This requires a special case here -- *and*
-        a class data-member that flags that this has been done. Ick.
+        at the very start of the line. This requires a special case here
+        -- *and* a class data-member that flags that this has been done. Ick.
 
         This can silently overwrite marks of punctuation in charlist.
         We don't need them by this time, so it should be OK.
@@ -164,7 +167,8 @@ class Positioner:
             self.charlist[1] = self.charlist[0]
             self.scanMarkMoved = True		# flag to move back later!
             return pos
-        if pos < len(self.charlist) - 1 and self.charlist[pos+1] not in SCANMARKS:
+        if (pos < len(self.charlist) - 1
+              and self.charlist[pos+1] not in SCANMARKS):
             return pos + 1
         blank = pos
         while blank > 0 and self.charlist[blank] in SCANMARKS: blank -= 1
@@ -173,7 +177,8 @@ class Positioner:
         return pos
 
     def GetAmbiguities(self):
-        """Return list of 1 or more possible resolutions of stress ambiguities"""
+        """Return list of 1 or more possible
+        resolutions of stress ambiguities"""
         if len(self.possLexicals) > 0: return self.possLexicals
         else: return [self.GetMarks()]
 
@@ -209,10 +214,10 @@ class Positioner:
     def RemoveEndFootMarks(self):
         """Per convention, erase foot-division marks at start and end of line.
         
-        This function is now called *only* at the beginning of the second step of
-        the second iambic algorithm. There for expository purposes we need to
-        show the bounds of the "regular" stretch, which may entail marks at the
-        ends of the line, which it's against convention to show.
+        This function is now called *only* at the beginning of the second step
+        of the second iambic algorithm. There for expository purposes we need
+        to show the bounds of the "regular" stretch, which may entail marks at
+        the ends of the line, which it's against convention to show.
         
         A special case: if there was a scansion mark at the very start of the 
         line, it will have been moved to make way for the footdiv mark. If the
@@ -247,7 +252,7 @@ class Positioner:
         retlist = [True]
         i = 0
         for f in footlist:
-            i += len(d[f][0])		# invert turns strings to *lists* of one string each
+            i += len(d[f][0]) # invert turns str. to *lists* of one string each
             if i >= len(self.footplace):
                 return retlist
             ip = self.footplace[i]

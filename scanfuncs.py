@@ -26,8 +26,9 @@ from scanutilities import *
 # ParseLine; others set by call from top level. Note: lfeet is set in several 
 # places, but lfeetset is set only at top level, and consulted in this module
 # only at beginning of iambic/anapestic process
-lineDat = { 'linetext': '', 'lfeet': 5, 'lfeetset':False, 'footlist':[],
-            'lastfoot': '', 'hremain': (0,0), 'midremain': (0,0), 'promcands':[] }
+lineDat = { 'linetext': '', 'lfeet': 5, 'lfeetset':False,
+            'footlist':[], 'lastfoot': '', 'hremain': (0,0),
+            'midremain': (0,0),'promcands':[] }
 #fo = open("foo.txt", "wb")
 
 class ScansionMachine:
@@ -51,18 +52,19 @@ class ScansionMachine:
     def ParseLine(self, line):
         """Determine syls/stress in all words in line, store other data too.
         
-        Divide the line into word-tokens (carefully!). Look up each in dictionary,
-        and there or by calculation in the Syllabizer determine syllabification
-        and stress. Lay all basic data-groundwork in Positioner. Return nothing.
+        Divide the line into word-tokens (carefully!). Look up each
+        in dictionary, and there or by calculation in the Syllabizer
+        determine syllabification and stress. Lay all basic
+        data-groundwork in Positioner. Return nothing.
         """
-        if len(line) < 1: return None			# nothing to do
+        if len(line) < 1: return None		   # nothing to do
         lineDat['linetext'] = line
         lineDat['footlist'] = []
         lineDat['lastfoot'] = ''
-        self.P.NewLine(len(line))					# prepare new data structures
+        self.P.NewLine(len(line))			   # prepare new data structures
         # Tricky: hyphens separate tokens, apostrophes don't; hyphen must go
         # first in list; double-quote needs escape; and please
-        # note subtle placement of '+', which allows punct+space to be a  string
+        # note subtle placement of '+', which allows punct+space to be a string
         words = self.wordBoundsRE.split(line)
         lineindex = 0		# keep track of position in list of chars
         self.dwds = []; self.cwds = []		# collections for Explainer
@@ -77,17 +79,18 @@ class ScansionMachine:
             if not wORD[0].isalpha() and (wORD[0] != '\'' or wORD == '\''):
                 lineindex = self.P.AddPunct(wORD, lineindex)
                 continue
-            w = wORD.lower()			# for ALL internal use! e.g. in dictionary!
+            w = wORD.lower()	  # for ALL internal use! e.g. in dictionary!
             syls = self._dictLookup(w)
             if syls: self.dwds.append(syls)
             else:
                 syls = self.S.Syllabize(w)
                 self.cwds.append(syls)
-            lineindex = self.P.AddWord(syls, lineindex)	# AddWord advances index
+            lineindex = self.P.AddWord(syls, lineindex)	# advances index
         self.P.LocateFootDivPositions()
     
     def _dictLookup(self, word):
-        """If word, or word less -s/-ed ending, is in dict, return its syls/stress.
+        """If word, or word less -s/-ed ending,
+        is in dict, return its syls/stress.
         
         Whenever we accept something from the dictionary, we copy it, so that
         our manipulations for the sake of this line won't change the dictionary
@@ -121,31 +124,36 @@ class ScansionMachine:
     def ShowSyllables(self, logger):
         """First visible step: display anonymous mark over each syllable."""
         logger.ExpParseLine(self.dwds, self.cwds)
-        return self.P.GetScanString(feet=False, punct = False, sylsOnly=True), True
+        return self.P.GetScanString(feet=False, punct = False,
+                                    sylsOnly=True), True
             
     def ShowLexStresses(self, logger):
         """Second visible step: x and / marks replace anon. syl marks"""
         logger.ExpLexStress(self.dwds, self.cwds)
-        # in case user forces choice of algorithm, which fails; see RestartNewIambicAlg
-        self.lexData = self.P.charlist[:]		# now ONLY data needed to restart
-        return self.P.GetScanString(False, False), True	# no feet no punct for disp
+        # in case user forces choice of algorithm, which fails;
+        # see RestartNewIambicAlg
+        self.lexData = self.P.charlist[:]	# now ONLY data needed to restart
+        return self.P.GetScanString(False, False), True	# no feet/punct to disp
 
 ## - - - - - where iambic and anapestic steps diverge
     def ChooseAlgorithm(self, logger, deducingParams=False):
-        """The "crux" step for iambics. Look ahead to see which comes out better.
+        """The "crux" step for iambics.
+        Look ahead to see which comes out better.
         
         Choices to try are multiplied by any stress-ambiguities discovered by
-        ParseLine. If neither is superior, choose at random. Announce whatever we 
-        do; allow user (with menu choice) to override.
+        ParseLine. If neither is superior, choose at random. Announce whatever 
+        we do; allow user (with menu choice) to override.
         """
         complexities = {}
         possScansions = self.P.GetAmbiguities()
         for s in possScansions:
             for algorithm in (1, 2):
                 (feet, test) = self.DoAlgorithm(algorithm, s)
-                complexities[(s, algorithm)] = (self._measureComplexity(feet, test), len(feet))
+                complexities[(s, algorithm)] = (self._measureComplexity(feet,
+                                                             test), len(feet))
         lowest = min([v[0] for v in complexities.values()])
-        bestkeys = [key for key in complexities if complexities[key][0] == lowest]
+        bestkeys = [key for key in complexities
+                    if complexities[key][0] == lowest]
         ourkey = random.choice(bestkeys)
         if not deducingParams:
             self.P.AdjustMarks(ourkey[0])
@@ -159,23 +167,27 @@ class ScansionMachine:
     def DoAlgorithm(self, whichAlgorithm, scansion):
         """Run through whole iambic scansion, either algorithm, silently.
         
-        Called by top-level DeduceParameters to figure metron. After, if iambic,
-        called by ChooseAlgorithm to try each approach. If global-to-module
-        linelength not set, figure it (not reliably!) and set it for step-by-steps.
-        Note that when call is from DeduceParameters, lfeetset is *false*.
+        Called by top-level DeduceParameters to figure metron.
+        After, if iambic, called by ChooseAlgorithm to try each approach.
+        If global-to-module linelength not set, figure it (not reliably!)
+        and set it for step-by-steps. Note that when call is from
+        DeduceParameters, lfeetset is *false*.
         """
         ## whichAlgorithm = 1           # TESTTESTTEST
         if not lineDat['lfeetset']:
-            if len(scansion) // 2 >= 2: 
-                linefeet = len(scansion) // 2	# crude! but can't find reliable improvement
-                lineDat['lfeet'] = linefeet		# was not set before; set for all following
+            if len(scansion) // 2 >= 2:
+                # crude! but can't find reliable improvement            
+                linefeet = len(scansion) // 2
+                # was not set before; set for all following
+                lineDat['lfeet'] = linefeet
             else: return ([], [])
         else: linefeet = lineDat['lfeet']
         footlist = []
         if whichAlgorithm == 1:
             normlen = linefeet * 2
             currlen = len(scansion)
-            if (currlen > (normlen + 1)) and (scansion[-4:] in ('x/xx', 'xx/x')):
+            if ((currlen > (normlen + 1))
+                 and (scansion[-4:] in ('x/xx', 'xx/x'))):
                 lastfoot = footDict[scansion[-4:]]
                 linefeet -= 1			# only in local copy!
                 scansion = scansion[:-4]
@@ -192,18 +204,20 @@ class ScansionMachine:
                 scansion = scansion[1:]
             # end of special-first-last-feet section
             if currlen == normlen:				# simple disyllables
-                for (footname, sylinx) in footfinder(footDict, scansion, 2, 0, len(scansion)):
+                for (footname, sylinx) in footfinder(footDict, scansion,
+                                                     2, 0, len(scansion)):
                     if footname: footlist.append(footname)
                     else: return ([], [])
             elif currlen < normlen:				# defective somewhere
                 candidate = scansion.find('x//')
                 if candidate % 2 != 0: return ([], [])
-                for (footname, sylinx) in footfinder(footDict, scansion, 2, 0, candidate):
+                for (footname, sylinx) in footfinder(footDict, scansion,
+                                                        2, 0, candidate):
                     if footname: footlist.append(footname)
                     else: return ([], [])
                 footlist.append('defective')
                 for (footname, sylinx) in footfinder(footDict, scansion, 2,
-                                                     candidate+1, len(scansion)):
+                                                   candidate+1, len(scansion)):
                     if footname: footlist.append(footname)
                     else: return ([], [])
             else:										# anapests
@@ -212,7 +226,8 @@ class ScansionMachine:
                 for p in sre.finditer(r'(?=/xx/)', scansion): 
                     candidates.append(p.start() + 1)
                 if len(candidates) < need:
-                    for p in sre.finditer(r'(?=xx/)', scansion): candidates.append(p.start())
+                    for p in sre.finditer(r'(?=xx/)', scansion):
+                        candidates.append(p.start())
                 i = 0
                 while i < currlen:
                     if i in candidates:
@@ -228,28 +243,31 @@ class ScansionMachine:
             (startoflongest, longest) = longestMatch(self.possIambRE, scansion)
             if startoflongest is None: return ([], [])
             if startoflongest % 2 == 0:			# divide head into disyllables
-                for (footname, sylinx) in footfinder(footDict, scansion, 2, 0, startoflongest):
+                for (footname, sylinx) in footfinder(footDict, scansion,
+                                                     2, 0, startoflongest):
                     if footname: footlist.append(footname)
                     else: return ([], [])
             elif scansion[:2] == '/x':		# headless, I guess
 # could use better test from alg 1: sc[:4] in ('/xxx', '/x/x'), IFF 3+ syls!!
                 footlist.append('defective')
-                for (footname, sylinx) in footfinder(footDict, scansion, 2, 1, startoflongest):
+                for (footname, sylinx) in footfinder(footDict, scansion,
+                                                    2, 1, startoflongest):
                     if footname: footlist.append(footname)
                     else: return ([], [])
             else:
                 anap = scansion.find('xx/', 0, startoflongest)
                 if anap == -1: return ([],[])
-                for (footname, longest) in footfinder(footDict, scansion, 2, 0, anap):
+                for (footname, longest) in footfinder(footDict, scansion,
+                                                               2, 0, anap):
                     if footname: footlist.append(footname)
                     else: return ([], [])
                 footlist.append('anapest')
-                for (footname, sylinx) in footfinder(footDict, scansion, 2, anap + 3,
-                                                      startoflongest):
+                for (footname, sylinx) in footfinder(footDict, scansion,
+                                            2, anap + 3, startoflongest):
                     if footname: footlist.append(footname)
                     else: return ([], [])
             for (footname, sylinx) in footfinder(footDict, scansion, 2,
-                                                  startoflongest, startoflongest + longest):
+                               startoflongest, startoflongest + longest):
                 if footname: footlist.append(footname)
                 else: return ([], [])
             # to divide tail, check e-s endings, divide in pairs (anaps??)
@@ -260,7 +278,8 @@ class ScansionMachine:
                     if footDict.has_key(scansion[-3:]):
                         lastfoot = footDict[scansion[-3:]]
                         scansion = scansion[:-3]
-                for (footname, sylinx) in footfinder(footDict, scansion, 2, 0, len(scansion)):
+                for (footname, sylinx) in footfinder(footDict, scansion,
+                                                    2, 0, len(scansion)):
                     if footname: footlist.append(footname)
                     else: return ([], [])
                 if lastfoot: footlist.append(lastfoot)
@@ -274,12 +293,12 @@ class ScansionMachine:
     def _measureComplexity(self, footlist, boundstest):
         """Add up weighted points for each foot substituted for the iamb.
         
-        The point system is highly arbitrary. It is not used to determine the basic
-        foot of the line, but only to rank possibilities proposed by the caller,
-        which is always DoAlgorithm. Somewhat streamlined during design of
-        corresponding anapestic method.
+        The point system is highly arbitrary. It is not used to determine the
+        basic foot of the line, but only to rank possibilities proposed by the
+        caller, which is always DoAlgorithm. Somewhat streamlined during design
+        of corresponding anapestic method.
         """
-        if len(footlist) != lineDat['lfeet']: return 100	# mostly test for empty!
+        if len(footlist) != lineDat['lfeet']: return 100 # test for empty!
         feet = footlist[:]				# so we can remove parens
         points = 0
         prevIsTrochee = False
@@ -302,15 +321,16 @@ class ScansionMachine:
                     points += 4
         return points
     
-## - - if one iambic algorithm fails, we try the other, starting here with a restart
+## - - if one iambic alg. fails, we try the other, starting here with a restart
     def RestartNewIambicAlg(self, logger, failedAlgorithm, scanline):
-        """Reset Positioner to lexical-stress step to try other iambic algorithm.
+        """Reset Positioner to lexical-stress step
+        to try other iambic algorithm.
         
         Since ChooseAlgorithm almost always prevents failures, this is called 
         almost exclusively if user forces choice to the other algorithm and it 
-        fails. If both fail, ChooseAlgorithm will pick one which will also arrive 
-        here, though presumably to no avail. Called only from Frame's OnStepBtn 
-        function. Does not change any values in global lineDat.
+        fails. If both fail, ChooseAlgorithm will pick one which will also 
+        arrive here, though presumably to no avail. Called only from Frame's
+        OnStepBtn function. Does not change any values in global lineDat.
         """
         #fo.write("\n",+failedAlgorithm+" - "+scanline) 
         logger.ExpRestartNewIambicAlg(failedAlgorithm, scanline)
@@ -320,7 +340,7 @@ class ScansionMachine:
         lineDat['midremain'] = (0,0)
         return self.P.GetScanString()
 
-## - - - - - - - - iambic Algorithm 1: Corral the Exceptional - - - - - - - - - - - 
+## - - - - - - iambic Algorithm 1: Corral the Exceptional - - - - - - - - - 
     def WeirdEnds(self, logger):
         """
         Parse out unusual starting and ending feet.
@@ -342,16 +362,16 @@ class ScansionMachine:
             lineDat['lastfoot'] = footDict[lastfootstring]
             self.P.AddFootDivMark(len(marks) - len(lastfootstring))
         else: lineDat['lastfoot'] = ''
-        # FOLLOWING IF AND LINES IN IT, BUT NOT THE ELSE, ALL CHANGED TO FIX OLD
-        # BUG -- COORDINATE!
-        if currlen - len(lastfootstring) <= normlen - 2 and \
-                                (marks.startswith('/x/x') or marks.startswith('/xxx')):
+        # FOLLOWING IF AND LINES IN IT, BUT NOT THE ELSE, ALL CHANGED TO FIX
+        # OLD BUG -- COORDINATE!
+        if (currlen - len(lastfootstring) <= normlen - 2
+              and (marks.startswith('/x/x') or marks.startswith('/xxx'))):
             lineDat['footlist'].append('defective')
             self.P.AddFootDivMark(1)
             lineDat['midremain'] = (1, currlen - len(lastfootstring))
         else: lineDat['midremain'] = (0, currlen - len(lastfootstring))
-        # despite the argument here, we call the Explainer for EITHER a headless
-        # line or a strange last foot
+        # despite the argument here, we call the Explainer for EITHER a
+        # headless line or a strange last foot
         logger.ExpWeirdEnds(lineDat['lastfoot'], lineDat['footlist'])
         return self.P.GetScanString(), True
     
@@ -364,50 +384,56 @@ class ScansionMachine:
         logger.ExpFootDivision(currlen, normlen)
         marks = self.P.GetMarks()
         if currlen == normlen:
-            for (footname, sylinx) in footfinder(footDict, marks, 2, start, end):
+            for (footname, sylinx) \
+                  in footfinder(footDict, marks, 2, start, end):
                 if footname: lineDat['footlist'].append(footname)
                 else: return self.P.GetScanString(), False
-                if sylinx < end:		# not at end of line, not where lastfoot starts
+                if sylinx < end: # not at end of line or where lastfoot starts
                     self.P.AddFootDivMark(sylinx + lineDat['midremain'][0])
         elif currlen < normlen:
             candidate = marks.find('x//', start, end)
-            if candidate % 2 != 0:			# 'x//' at odd pos hopelessly messy
-                logger.Explain("\nFAIL! no good position for single-stress foot")
+            if candidate % 2 != 0:		 # 'x//' at odd pos hopelessly messy
+                logger.Explain("\nFAIL! no good position "
+                               + "for single-stress foot")
                 return self.P.GetScanString(), False
             candidate += 2			# point directly at defective foot
-            for (footname, sylinx) in footfinder(footDict, marks, 2, start, candidate):
+            for (footname, sylinx) \
+                  in footfinder(footDict, marks, 2, start, candidate):
                 if footname: lineDat['footlist'].append(footname)
                 else: return self.P.GetScanString(), False
                 self.P.AddFootDivMark(sylinx)
             lineDat['footlist'].append('defective')
             self.P.AddFootDivMark(candidate+1)
-            for (footname, sylinx) in footfinder(footDict, marks, 2, candidate+1, end):
+            for (footname, sylinx) \
+                  in footfinder(footDict, marks, 2, candidate+1, end):
                 if footname: lineDat['footlist'].append(footname)
                 else: return self.P.GetScanString(), False
                 if sylinx < end: self.P.AddFootDivMark(sylinx)
         else:				# anapest(s)
             need = currlen - normlen
-            candidates = [p.start()+1 for p in sre.finditer(r'(?=/xx/)', marks)]
+            candidates = [p.start()+1 for p in sre.finditer(r'(?=/xx/)',marks)]
             if len(candidates) < need:
-                morecands = [p.start() for p in sre.finditer(r'(?=xx/)', marks)]
+                morecands = [p.start() for p in sre.finditer(r'(?=xx/)',marks)]
                 candidates += morecands
             while start < end:
                 if need and (start in candidates):
                     foot = marks[start:start+3]
-                    if footDict.has_key(foot): lineDat['footlist'].append(footDict[foot])
+                    if footDict.has_key(foot):
+                        lineDat['footlist'].append(footDict[foot])
                     else: return self.P.GetScanString(), False
                     start += 3
                     need -= 1
                 else:
                     foot = marks[start:start+2]
-                    if footDict.has_key(foot): lineDat['footlist'].append(footDict[foot])
+                    if footDict.has_key(foot):
+                        lineDat['footlist'].append(footDict[foot])
                     else: return self.P.GetScanString(), False
                     start += 2
                 if start < end: self.P.AddFootDivMark(start)
         if lineDat['lastfoot']: lineDat['footlist'].append(lineDat['lastfoot'])
         return self.P.GetScanString(), True
     
-## - - - - - - - - iambic Algorithm 2: Maximize the Normal - - - - - - - - - - - - 
+## - - - - - - iambic Algorithm 2: Maximize the Normal - - - - - - - - - - 
     def TryREs(self, logger):
         """Locate the longest potentially regular iambic stretch in the line.
 
@@ -425,7 +451,8 @@ class ScansionMachine:
         lineDat['hremain'] = (0, startlongest)
         lineDat['midremain'] = (runend, len(marks))
         retstr = self.P.GetScanString(True)		# show only bounds of longest
-        for (footname, sylinx) in footfinder(footDict, marks, 2, startlongest, runend):
+        for (footname, sylinx) \
+              in footfinder(footDict, marks, 2, startlongest, runend):
             if footname: lineDat['footlist'].append(footname)
             else: return self.P.GetScanString(), False
             if sylinx < len(marks): 
@@ -437,9 +464,9 @@ class ScansionMachine:
     def CleanUpRE(self, logger):
         """Parse beginning and end of iambic line around regular center.
         
-        This is not quite as sophisticated as TestLengthAndDice above. It won't
-        deal with internal defectives, or with anapests *after* the longest-iambic 
-        stretch, or with 2nd-paeon endings. It could.
+        This is not quite as sophisticated as TestLengthAndDice above.
+        It won't deal with internal defectives, or with anapests *after*
+        the longest-iambic stretch, or with 2nd-paeon endings. It could.
         """
         marks = self.P.GetMarks()
         self.P.RemoveEndFootMarks()
@@ -457,8 +484,10 @@ class ScansionMachine:
 # option noted in DoAlg: use better test from alg 1 IFF 3+syls (/x/x, /xxx)
                 lineDat['footlist'].insert(insertpoint, 'defective')
                 insertpoint += 1
-                for (footname, sylinx) in footfinder(footDict, marks, 2, 1, head):
-                    if footname: lineDat['footlist'].insert(insertpoint, footname)
+                for (footname, sylinx) \
+                      in footfinder(footDict, marks, 2, 1, head):
+                    if footname:
+                        lineDat['footlist'].insert(insertpoint, footname)
                     else: return self.P.GetScanString(), False
                     self.P.AddFootDivMark(sylinx)
                     insertpoint += 2
@@ -471,14 +500,18 @@ class ScansionMachine:
                     logger.Explain("\nFAIL! can't find needed anapest")
                     return self.P.GetScanString(), False
                 else:
-                    for (footname, sylinx) in footfinder(footDict, marks, 2, 0, head):
-                        if footname: lineDat['footlist'].insert(insertpoint, footname)
+                    for (footname, sylinx) \
+                          in footfinder(footDict, marks, 2, 0, head):
+                        if footname:
+                            lineDat['footlist'].insert(insertpoint, footname)
                         else: return self.P.GetScanString(), False
                         self.P.AddFootDivMark(sylinx)
                         insertpoint += 1
                     lineDat['footlist'].append('anapest')
-                    for (footname, sylinx) in footfinder(footDict, marks, 2, anap+3, head):
-                        if footname: lineDat['footlist'].insert(insertpoint,footname)
+                    for (footname, sylinx) \
+                          in footfinder(footDict, marks, 2, anap+3, head):
+                        if footname:
+                            lineDat['footlist'].insert(insertpoint,footname)
                         else: return self.P.GetScanString(), False
                         self.P.AddFootDivMark(sylinx)
                         insertpoint += 1
@@ -493,8 +526,9 @@ class ScansionMachine:
             else:
                 startlastfoot = len(marks)
                 lineDat['lastfoot'] = ''
-            for (footname, sylinx) in footfinder(footDict, marks, 2,
-                                                 lineDat['midremain'][0], startlastfoot):
+            for (footname, sylinx) \
+                  in footfinder(footDict, marks, 2,
+                  lineDat['midremain'][0], startlastfoot):
                 if footname: lineDat['footlist'].append(footname)
                 else: return self.P.GetScanString(), False
                 if sylinx < startlastfoot: self.P.AddFootDivMark(sylinx)
@@ -532,9 +566,11 @@ class ScansionMachine:
                     self.P.AddFootDivMark(sylinx+3)
                     promotions.append(sylinx+2)
                 elif inx < len(fl) - 1 and fl[inx+1] == 'trochee':
-                    logger.Explain("\nFAIL! bad pyrrhic (word wrongly stressed?)")
+                    logger.Explain("\nFAIL! bad pyrrhic " +
+                                   "(word wrongly stressed?)")
                     return self.P.GetScanString(), False
-                elif inx == len(fl) - 1 or fl[inx+1] not in ('spondee', 'palimbacchius'):
+                elif (inx == len(fl) - 1
+                      or fl[inx+1] not in ('spondee', 'palimbacchius')):
                     lineDat['footlist'][inx] = '(iamb)'
                     self.P.AddScanMark('%', sylinx+1)
                     promotions.append(sylinx+1)
@@ -546,13 +582,14 @@ class ScansionMachine:
         """Report results of iambic scansion: feet, and number of sustitutions.
         
         The anlysis is crude even compared with _measureComplexity. Kiparsky 
-        may suggest better possibilities, but they may not be usable without more
-        intelligence about syntax than the Scandroid has or is likely to have.
+        may suggest better possibilities, but they may not be usable without
+        more intelligence about syntax than the Scandroid has/likely will have.
         """
         substitutions = 0
         for f in lineDat['footlist']:
             if f not in ('iamb', '(iamb)'): substitutions += 1
-        if lineDat['lfeetset'] and (len(lineDat['footlist']) != lineDat['lfeet']):
+        if (lineDat['lfeetset']
+              and (len(lineDat['footlist']) != lineDat['lfeet'])):
             logger.ExpEndGame(lineDat['footlist'], 100)	# flag of despair!
             return self.P.GetScanString(), False
         else:
@@ -561,12 +598,13 @@ class ScansionMachine:
 
 ## - - - - - below, all code for scanning anapestics quickly and step-by-step
     def GetBestAnapLexes(self, logger, deducingParams=False):
-        """Try out all stress-resolutions with calls to quick anapestic run-through.
+        """Try out all stress-resolutions with
+        calls to quick anapestic run-through.
         
         This does a main part of what ChooseAlgorithm does for iambics: get
-        from the Positioner a list of alternative lexical-stress lines, each with
-        a set of resolutions of stress ambiguities, and try each one out. It
-        elicits a complexity measure and uses it to pick a "best."
+        from the Positioner a list of alternative lexical-stress lines, each
+        with a set of resolutions of stress ambiguities, and try each one out.
+        It elicits a complexity measure and uses it to pick a "best."
         """
         possScansions = self.P.GetAmbiguities()
         numcands = len(possScansions)
@@ -575,7 +613,8 @@ class ScansionMachine:
             flist = self.scanAnapestics(p)
             complexities[p] = (self._anapComplexity(flist), len(flist))
         lowest = min([v[0] for v in complexities.values()])
-        bestkeys = [key for key in complexities if complexities[key][0] == lowest]
+        bestkeys = [key for key in complexities
+                    if complexities[key][0] == lowest]
         ourkey = random.choice(bestkeys)
         if not deducingParams:
             logger.ExpAnapGetBest(numcands, len(bestkeys))
@@ -601,30 +640,32 @@ class ScansionMachine:
         return points		
         
     def scanAnapestics(self, scansion):
-        """Run through anapestic scansion silently to report success or failure.
+        """Run through anapestic scansion
+        silently to report success or failure.
         
         Fairly parallel to iambic DoAlgorithm. Called by DeduceParameters
-        directly for quick judgment. Also called, with alternate stress-resoution
-        preliminary scansions, by GetBestAnapLexes.
+        directly for quick judgment. Also called, with alternate
+        stress-resoution preliminary scansions, by GetBestAnapLexes.
         """
         numsyls = len(scansion)
         if lineDat['lfeetset']: needfeet = lineDat['lfeet']
         else:
             (needfeet, excess) = divmod(numsyls, 3)
-            # assume anapestic lines may be short but never long, exc. terminals
+          # assume anapestic lines may be short but never long, exc. terminals
             if scansion:
-                if scansion[-1] == 'x': excess -= 1	# term. slack doesn't add feet
-            if excess > 0: needfeet += 1		# could be fooled by 3 disyl feet!
+                if scansion[-1] == 'x':
+                    excess -= 1	# term. slack doesn't add feet
+            if excess > 0: needfeet += 1 # could be fooled by 3 disyl feet!
             altlen = AltLineLenCalc(scansion)
             needfeet = max(needfeet, altlen)
             lineDat['lfeet'] = needfeet	
-        if scansion[-2:] == 'xx':		# mark promotion, treat as stressed (x% or /x%)
+        if scansion[-2:] == 'xx': # mark promo., treat as stressed (x% or /x%)
             scansion = scansion[:-1] + '%'
             self.P.AddScanMark('%', len(scansion)-1)
         if scansion:
-            if scansion[-1] == 'x':		# see AnapSubs for special notes on last feet!
-                tailstart = scansion.rfind('/')					# point to penult
-                tailstart = scansion.rfind('/', 0, tailstart)	#   stress in line
+            if scansion[-1] == 'x':	# see AnapSubs for notes on last feet!
+                tailstart = scansion.rfind('/')				  # point to penult
+                tailstart = scansion.rfind('/', 0, tailstart) # stress in line
                 tail = numsyls - tailstart - 1
                 if AnapSubs.has_key(scansion[-tail:]):
                     lastfoot = AnapSubs[scansion[-tail:]]
@@ -643,7 +684,8 @@ class ScansionMachine:
         if numsyls == needfeet * 3:		# assign even 3s as feet
             scansion = self.AnapPromoteSlack(scansion)
             footlist = []
-            for (footname, sylinx) in footfinder(AnapSubs, scansion, 3, 0, numsyls):
+            for (footname, sylinx) \
+                  in footfinder(AnapSubs, scansion, 3, 0, numsyls):
                 if footname: footlist.append(footname)
                 else: return []
         else:
@@ -676,19 +718,20 @@ class ScansionMachine:
         return footlist
 
     def AnapEndFoot(self, logger):
-        """Initiate data for anapestic scansion; identify terminal-slack last foot."""
+        """Initiate data for anapestic scansion;
+        identify terminal-slack last foot."""
         marks = self.P.GetMarks()
         numsyls = len(marks)
         if not lineDat['lfeetset']:		# calculate line's foot-length
             (lineDat['lfeet'], excess) = divmod(numsyls, 3)
             if marks[-1] == 'x': excess -= 1	# term. slack doesn't add feet
             if excess > 0: lineDat['lfeet'] += 1
-        if marks[-2:] == 'xx':		# mark promotion, treat as stressed (x% or /x%)
+        if marks[-2:] == 'xx':	  # mark promo., treat as stressed (x% or /x%)
             marks = marks[:-1] + '%'
             self.P.AddScanMark('%', len(marks)-1)
-        if marks[-1] == 'x':		# see AnapSubs for special notes on last feet!
-            tailstart = marks.rfind('/')					# point to penult
-            tailstart = marks.rfind('/', 0, tailstart)	#   stress in line
+        if marks[-1] == 'x':		# see AnapSubs for notes on last feet!
+            tailstart = marks.rfind('/')				# point to penult
+            tailstart = marks.rfind('/', 0, tailstart)	# stress in line
             tail = numsyls - tailstart - 1
             if AnapSubs.has_key(marks[-tail:]):
                 lineDat['lastfoot'] = AnapSubs[marks[-tail:]]
@@ -711,11 +754,11 @@ class ScansionMachine:
     def AnapDivideHead(self, logger):
         """Divide anapestic line (before terminal-slack last foot) into feet.
         
-        If (remainder of) line is all trisyllables, identify feet. If one or more
-        disyllabic feet are indicated by a short syllable-count, try various
-        positions, relying on each foot ending in a stress (which would *not*
-        work with iambics). Arbitrarily, we prefer leftward choices for positions
-        of disyllables; experiment shows results are mixed.
+        If (remainder of) line is all trisyllables, identify feet. If one or
+        more disyllabic feet are indicated by a short syllable-count, try
+        various positions, relying on each foot ending in a stress (which
+        would *not* work with iambics). Arbitrarily, we prefer leftward
+        choices for positions of disyllables; experiment shows mixed results.
         """
         needfeet = lineDat['lfeet']
         if lineDat['lastfoot']: needfeet -= 1
@@ -726,7 +769,8 @@ class ScansionMachine:
             return self.P.GetScanString(), False
         if numsyls == needfeet * 3:		# assign even 3s as feet
             marks = self.AnapPromoteSlack(marks, insertmark=True)
-            for (footname, sylinx) in footfinder(AnapSubs, marks, 3, 0, numsyls):
+            for (footname, sylinx) \
+                  in footfinder(AnapSubs, marks, 3, 0, numsyls):
                 if footname: lineDat['footlist'].append(footname)
                 else:
                     logger.Explain("\nFAIL! unknown foot")
@@ -745,12 +789,13 @@ class ScansionMachine:
                 index = lineDat['hremain'][0]		# we know it's 0
                 for foot in pat:
                     index += int(foot)
-                    if marks[index-1] not in  '/%':	# treat (term.) prom. as stress
-                        thislldo = False
+                    if marks[index-1] not in '/%': # treat (term.) prom.
+                        thislldo = False           # as stress
                         break
                 if thislldo: break
             if not thislldo:
-                logger.Explain("\nFAIL! could not find plausible pattern of feet")
+                logger.Explain("\nFAIL! could not find " +
+                               "plausible pattern of feet")
                 return self.P.GetScanString(), False
             f = sylinx = 0	# can't use footfinder; chunksize changes
             for digit in pat:
@@ -785,13 +830,14 @@ class ScansionMachine:
         return scansion
 
     def AnapCleanUpAndReport(self, logger):
-        """Final-condition check and Explainer call to show results of anap scansion.
+        """Final-condition check and Explainer call
+        to show results of anap scansion.
         
         If any internal amphibrach, return fail and make suggetion. Replace
-        |x/|/x/| with |x//|x/| on general principle of greater regularity. (I say the
-        bacchius is less disruptive than the cretic. This is not always right!
-        but when not, it's because of syntax, which we know nothing about.)
-        Call Explainer with list of feet to be displayed.
+        |x/|/x/| with |x//|x/| on general principle of greater regularity.
+        (I say the bacchius is less disruptive than the cretic. This is not
+        always right! but when not, it's because of syntax, which we know
+        nothing about.) Call Explainer with list of feet to be displayed.
         """
         fl = lineDat['footlist']
         d = dictinvert(AnapSubs)

@@ -50,15 +50,17 @@ class MyScanTC(MyOneLineTC):
 class MyLineTC(MyOneLineTC):
     def __init__(self, parent, fontsize):
         MyOneLineTC.__init__(self, parent, -1, fontsize)
-        self.AppendText(' Double-click any text line to put it here for scanning ')
+        
+        self.AppendText(' Double-click any text line to '
+                        + 'put it here for scanning ')
         self.SetInsertionPoint(0)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
         self.Bind(wx.EVT_RIGHT_DCLICK, self.OnDoubleClick)
 
     def OnDoubleClick(self, event):		# only in line, not scansion
-        (start, end) = self.GetSelection()		# here (only) we know *where* in word
-        wx.CallAfter(self.GetSelectedWord, event, start)	# selection so far 0 length
-        event.Skip()
+        (start, end) = self.GetSelection()	# here (only) we know WHERE in word
+        wx.CallAfter(self.GetSelectedWord, event, start) # selection so far
+        event.Skip()                                     # is zero length
     def GetSelectedWord(self, event, clickpos):
         clicked = self.GetStringSelection()
         clicked = clicked.strip()			# Windows leaves trailing space!
@@ -76,7 +78,8 @@ class MyLineTC(MyOneLineTC):
         try:
             result = self.GetParent().SM.SD.EditDict(clicked)
         except: 
-            #self.GetParent().ErrorMessage(self.GetParent().SM.SD.EditDict, clicked)
+            #self.GetParent().ErrorMessage(self.GetParent().SM.SD.EditDict,
+            #                                                       clicked)
             traceback.print_exc()
             return
         if result:
@@ -88,7 +91,8 @@ class MyLineTC(MyOneLineTC):
 class MyNotesTC(wx.TextCtrl):
     def __init__(self, parent, fontsize):
         self.fontsize = fontsize
-        wx.TextCtrl.__init__(self, parent, -1, style=wx.TE_READONLY | wx.TE_MULTILINE)
+        wx.TextCtrl.__init__(self, parent, -1,
+                             style=wx.TE_READONLY | wx.TE_MULTILINE)
         self.workfont = wx.Font(self.fontsize, wx.SWISS, wx.NORMAL, wx.NORMAL)
         self.SetFont(self.workfont)
         
@@ -102,13 +106,15 @@ class MyNotesTC(wx.TextCtrl):
 class MyTextSTC(stc.StyledTextCtrl):
     def __init__(self, parent, ID):
         stc.StyledTextCtrl.__init__(self, parent, ID)
-        # following shd probably have settable fontsize per screen like TCs above
+        self.lineNumsVisible = False; self.ToggleLineNumbers()
+        # following shd prob. have settable fontsize per screen like TCs above
         self.StyleSetSpec(stc.STC_STYLE_DEFAULT, "size:14,face:Courier")
         self.Bind(stc.EVT_STC_DOUBLECLICK, self.OnDoubleClick)
-        ##bug: after line is double-clicked up to scansion work area, it becomes
-        ##impossible to type in the main window
-        ##first experiment in fixing this: bind an on-click event, and have its
-        ##method simply reassert focus
+        self.Bind(stc.EVT_STC_CHANGE, self.OnChange)
+        ##bug: after line is double-clicked up to scansion work area, it
+        ##becomes impossible to type in the main window
+        ##first experiment in fixing this: bind an on-click event, and have
+        ##its method simply reassert focus
         #self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseClickInTextWindow)
         ##well, that didn't work
         wx.EVT_CHAR(self, self.OnKeyDown) 
@@ -119,8 +125,8 @@ class MyTextSTC(stc.StyledTextCtrl):
         #import sys
         #ch = event.KeyCode()
         #if ch in NAVKEYS: event.Skip()
-        ##elif ((sys.platform == 'darwin' and event.MetaDown()) or (sys.platform
-                                ##== 'win32' and event.ControlDown())):
+        ##elif ((sys.platform == 'darwin' and event.MetaDown())
+                 ##or (sys.platform == 'win32' and event.ControlDown())):
             ##if ch == 'C':
                 ##self.CopySelection()
             ##elif ch == 'A':
@@ -128,6 +134,20 @@ class MyTextSTC(stc.StyledTextCtrl):
         self.SetFocus()
         event.Skip()
 
+    def OnChange(self, event):
+        self.ToggleLineNumbers()
+    
+    def ToggleLineNumbers(self):
+        if self.lineNumsVisible:
+            lines = self.GetLineCount()
+            lineNumsWidth = self.TextWidth(stc.STC_STYLE_LINENUMBER,
+                                                  str(lines) + ' ')
+            self.SetMarginWidth(0, lineNumsWidth)
+            self.SetMarginWidth(1, 20)
+        else:
+            self.SetMarginWidth(0, 1)
+            self.SetMarginWidth(1, 10)
+    
     def DisplayText(self, text):
         self.SetReadOnly(0)
         self.ClearAll()
@@ -188,19 +208,21 @@ class MyTextSTC(stc.StyledTextCtrl):
         # rstrip() to remove ugly Windows box; preserve leading whitespace!
         linetext = self.GetLine(thelinenum).rstrip()
         if len(linetext) < 2: return			# blank, or newline only
-        if thelinenum > 0: selstart = self.GetLineEndPosition(thelinenum - 1) + 1
+        if thelinenum > 0:
+            selstart = self.GetLineEndPosition(thelinenum - 1) + 1
         else: selstart = 0
         self.SetSelection(selstart, self.GetLineEndPosition(thelinenum))
         self.GetParent().ShowTextLine(linetext, thelinenum)
 
     def PutLineBack(self, linenum, thescansion):
         """Place scansion over line it belongs to in Text panel"""
-        if linenum > 0 and self.IsScanLine(linenum - 1):	# scan line exists?
+        if linenum > 0 and self.IsScanLine(linenum - 1):  # scan line exists?
             linenum -= 1
             self.GotoLine(linenum)
             pos = self.GetCurrentPos()
-            self.SetSelection(self.GetCurrentPos(), self.GetLineEndPosition(linenum))
-            self.ReplaceSelection(thescansion)		# substitute newer scansion
+            self.SetSelection(self.GetCurrentPos(),
+                              self.GetLineEndPosition(linenum))
+            self.ReplaceSelection(thescansion)	# substitute newer scansion
         else:
             self.GotoLine(linenum)			# go back where we got it
             pos = self.GetCurrentPos()

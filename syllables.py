@@ -30,8 +30,8 @@
 # word endings. The ones that remain are found only at word-end or, as in the
 # case of '-er', cause too much trouble if we allow them earlier.
 
-# A note on "vowels": there's always an ambiguity about 'y', which I've resolved
-# more or less by hunch individually in each place.
+# A note on "vowels": there's always an ambiguity about 'y',
+# which I've resolved more or less by hunch individually in each place.
 
 import sre
 import wx		# need ONLY for:
@@ -40,17 +40,18 @@ defaultEncoding = wx.GetDefaultPyEncoding()		# for DivideCV only!
 SIBILANTS = '40xzjgsc'			# weird ones are encoded, 7th bit set
 MIDS = 'bdfgklmnpstw%0245'
 MULTISUFFIX = ('ible', 'able')
-STRESSSUFFIX = ('tion', 'sion', 'tiou', 'ciou', 'tious', 'cious', 'cion', 'gion', 'giou', 'gious')
+STRESSSUFFIX = ('tion', 'sion', 'tiou', 'ciou', 'tious',
+                'cious', 'cion', 'gion', 'giou', 'gious')
 PREFIXES = ('a', 'as', 'be', 'con', 'de', 'di', 'ex', 're', 'un', 'en')
 
 # out-of-class functions to handle encoding of special-combination characters
 def encode(ch): return chr(ord(ch) & 0x3F)
 def decode(ch): return chr(ord(ch) | 0x40)
-def handleCiV(match):		# encode [st] and i but not following vowel
+def handleCiV(match):	  # encode [st] and i but not following vowel
     c1 = encode(match.group()[0])
     c2 = encode(match.group()[1])
     return c1 + c2 + match.group()[2]
-def handleCC(match):		# adjusted for third-char test! expand this opport.?
+def handleCC(match):	  # adjusted for third-char test! expand this opport.?
     ret = encode(match.group()[0]) + encode(match.group()[1])
     if len(match.group()) > 2: ret += match.group()[2]
     return ret
@@ -59,25 +60,26 @@ def handleVyV(match):
 
 class Syllabizer:
     def __init__(self):
-        self.suffixes = sre.compile(r""" [^aeiouhr]y\b | er\b | age | est | ing | 
-                ness\b | less | ful | ment\b | time\b | [st]ion | [ia]ble\b | [ct]ial
-                | [ctg]iou | [ctg]ious
+        self.suffixes = sre.compile(r""" [^aeiouhr]y\b | er\b | age | est |
+                ing | ness\b | less | ful | ment\b | time\b | [st]ion |
+                [ia]ble\b | [ct]ial | [ctg]iou | [ctg]ious
             """, sre.VERBOSE)
 #	| ical\b | icle\b | ual\b | ism \b | [ae]ry\b		# don't work (as 2-syl)
-            # Note: left out special-character "*ag$" and "tim$" -- don't understand!
-            # final syllable spelled with liquid or nasal and silent 'e'
+      # Note: left out special-character "*ag$" and "tim$" -- don't understand!
+      # final syllable spelled with liquid or nasal and silent 'e'
         self.liquidterm = sre.compile(r" [^aeiouy] [rl] e \b", sre.X)
         # the collection of special-character groups
         self.finalE = sre.compile(r" [^aeiouy] e \b ", sre.X)
         self.CiVcomb = sre.compile(r" [st] i [aeiouy] ", sre.X)
-        self.CCpair = sre.compile(r" [cgprstw] h | gn |  gu[aeiouy] | qu | ck", sre.X)
+        self.CCpair = sre.compile(r" [cgprstw] h | gn |  gu[aeiouy] | qu | ck",
+                                                                         sre.X)
         self.VyVcomb = sre.compile(r" [aeiou] y [aeiou]", sre.X) 
-            # vowel pairs reliably disyllabic (not 'ui' ('juice' vs 'intuition'! some 
-            # 'ue' missed ('constituent'), some 'oe' ('poem'))
+    # vowel pairs reliably disyllabic (not 'ui' ('juice' vs 'intuition'! some 
+    # 'ue' missed ('constituent'), some 'oe' ('poem'))
         self.sylvowels = sre.compile(r" [aeiu] o | [iu] a | iu", sre.X)
-            # divisions should fall before or after, not within, these consonant pairs
-        self.splitLeftPairs = sre.compile(r""" [bdfk%02] [rl] | g [rln] | [tw] r | p
-                [rlsn] s [nml]""", sre.X)
+    # divisions should fall before or after, not within, these consonant pairs
+        self.splitLeftPairs = sre.compile(r""" [bdfk%02] [rl] | g [rln] |
+                                          [tw] r | p [rlsn] s [nml]""", sre.X)
 
     def Syllabize(self, word):
         if len(word) < 3: return [word.upper()]	# 'ax' etc
@@ -103,22 +105,27 @@ class Syllabizer:
     def Preliminaries(self):
         apostrophe = self.wd.find("\'", -2)	# just at end of word ('twas)
         if apostrophe != -1:		# poss.; check if syllabic and remove 
-            if self.wd[-1] != '\'' and self.wd[-1] in 'se' and self.wd[-2] in SIBILANTS:
+            if (self.wd[-1] != '\'' and self.wd[-1] in 'se'
+                                    and self.wd[-2] in SIBILANTS):
                 self.sylBounds.append(apostrophe)
             self.wd = self.wd[:apostrophe]	# cut off ' or 's until last stage
         # cut final s/d from plurals/pasts if not syllabic
-        self.isPast = self.isPlural = False			# defaults used also for suffixes
-        if sre.search(r"[^s]s\b", self.wd): self.isPlural = True	# terminal single s (DUMB!)
-        if sre.search(r"ed\b", self.wd): self.isPast = True		# terminal 'ed'
-        if self.isPast or self.isPlural: self.wd = self.wd[:-1]
+        self.isPast = self.isPlural = False	 # defaults used also for suffixes
+        if sre.search(r"[^s]s\b", self.wd):
+            self.isPlural = True	# terminal single s (DUMB!)
+        if sre.search(r"ed\b", self.wd):
+            self.isPast = True		# terminal 'ed'
+        if self.isPast or self.isPlural:
+            self.wd = self.wd[:-1]
         # final-syl test turns out to do better work *after* suffices cut off
         self.FindSuffix()
-        # if final syllable is l/r+e, reverse letters for processing as syllable
+        # if final syllable is l/r+e, reverse letters for processing as syll.
         if len(self.wd) > 3 and self.liquidterm.search(self.wd):
             self.wd = self.wd[:-2] + self.wd[-1] + self.wd[-2]
 
     def FindSuffix(self):
-        """Identify any known suffixes, mark off as syllables and possible stresses.
+        """Identify any known suffixes, mark off
+        as syllables and possible stresses.
         
         Syllables are stored in a class-wide compiled RE. We identify them and
         list them backwards so as to "cut off" the last first. We consult a
@@ -160,16 +167,16 @@ class Syllabizer:
         done by small functions outside of (and preceding) the class.
         
         The combinations in Paul Holzer's original code have been supplemented
-        and tweaked in various ways. For example, the original test for [iy]V is
-        poor; 'avionics' defeats it; so we leave that to a new disyllabic-vowel
-        test.
+        and tweaked in various ways. For example, the original test for [iy]V
+        is poor; 'avionics' defeats it; so we leave that to a new
+        disyllabic-vowel test.
         
         The messy encoding-and-sometimes-decoding of nonsyllabic final 'e' 
         after a C seems the best that can be done, though I hope not. 
         """
-        if sre.search(r"[^aeiouy]e\b", self.wd):	# nonsyllabic final e after C
-            if ((not self.isPlural or self.wd[-2] not in SIBILANTS) and (not
-                                         self.isPast or self.wd[-2] not in 'dt')):
+        if sre.search(r"[^aeiouy]e\b", self.wd): # nonsyllabic final e after C
+            if ((not self.isPlural or self.wd[-2] not in SIBILANTS) and
+                                 (not self.isPast or self.wd[-2] not in 'dt')):
                 self.wd = self.wd[:-1] + encode(self.wd[-1])
             if not sre.search(r"[aeiouy]", self.wd):		# any vowel left??
                 self.wd = self.wd[:-1] + 'e'		# undo the encoding
@@ -238,7 +245,8 @@ class Syllabizer:
             return 2
         else:	# Nessley: 3+ syls, str penult if closed, else antepenult
             # syl n is origword[self.sylBounds[n-1]:self.sylBounds[n]-1];  so?
-            if origword[self.sylBounds[-1] - 1] not in 'aeiouy':		# last char penult
+            if (origword[self.sylBounds[-1] - 1]
+                                  not in 'aeiouy'): # last char penult
                 retstress = numsyls - 1				# if closed, stress penult
             else: retstress = numsyls - 2			# else, antepenult
             if self.numSuffixes == numsyls:
