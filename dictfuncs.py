@@ -13,28 +13,15 @@
 # structures connected with the dictionary of syllable-and-stress exceptions.
 
 import wx
-import os
 
+# Grabs the dictionary from scandictionary.py
 from scandictionary import scandict
-
-# added code by Thomas Heller to find "home" directory (where dictionary
-# should be found), whether running from script or frozen
-import imp, sys
-
-def main_is_frozen():
-    return (hasattr(sys, "frozen") or hasattr(sys, "importers") or
-            imp.is_frozen("__main__"))
 
 class ScanDict:
 
     def __init__(self, parent):
         self.Dict = {}
         self.mom = parent
-        self.dictopen = ''		# fill in on (first) successful open
-        self.LoadDictionary()
-        
-    def LoadDictionary(self):
-        """Sets the imported dictionary to self.Dict"""
         self.Dict = scandict
 
     def EditDict(self, selstring):

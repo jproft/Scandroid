@@ -26,6 +26,7 @@ from math import modf
 from scanstrings import *		# some global texts & the Explainer
 from scanstc import *			# editors for subwindows
 from scanfuncs import *			# the Scansion Machine
+from datetime import *          # used for saving scansions
 
 import traceback
 
@@ -52,16 +53,18 @@ class ScandroidFrame(wx.Frame):
         self.SM = ScansionMachine()		# central engine of scansion work
         self.E = Explainer(self.NotesWindow)
         self.lineNum = 0			# where to put its scansion when done
-        self.loaddir = ''			# where user gets textfiles to Load
         self.Metron = 2				# initial assumption:
         self.LineFeet = 5			#   iambic pentameter
         self.LineFeetSet = True
         self.SM.SetLineFeet(5, True)
+        self.forceiamb, self.forceanap = False, False
         self.SetupGUI()			# buttons, menus . . .
         self.SetupScansionSteps()		# inc some more data items
         self.WholeText.DisplayText(InitialText)		# as a startup . . .
+        self.loadedtext = True
         self.WholeText.SetReadOnly(0)	# but allow editing
-        self.EnableScanButtons(False)
+        self.DisableAllScanButtons()
+        self.loadPath, self.savePath = '', ''
         wx.FutureCall(100, self.WholeText.SetFocus)	# Robin Dunn's fix!
         self.leadSpaceRE = sre.compile(r'[ |\t]+')
         self.newFindDialog, self.oldFindDialog = [None for i in range(2)]
@@ -89,17 +92,33 @@ class ScandroidFrame(wx.Frame):
         BTNSIZE = wx.Size(-1, -1)
         
         # -- CREATION OF BUTTONS --
-        lbls = ['Scan', 'Step', 'Save', 'Cancel',
-                'Load New', 'Type New', 'Save Text', 'Reload Dict']
+        lbls = ['Scan', 'Step', 'Store', 'Cancel',
+                'Load New', 'Type New', 'Save Text', 'Save Scansion']
+                
+        tips = ['Perform all scansion steps on the selected line.',
+                'Go to the next stage in the scanning process.',
+                'Store the current scansion into the text panel.',
+                'Cancel the scansion of the current line.',
+                'Load a new plain text file into the Scandroid.',
+                'Clear current text and type new text into the Scandroid.',
+                'Save typed text to a new plain text file.',
+                'Save line scansion and notes to a generated file.']
+                
         self.btns = []
         for i, lbl in enumerate(lbls):
-            self.btns.append(wx.Button(self, i + 1001, label = lbl,
-                                                    size = BTNSIZE))
+           button = wx.Button(self, i + 1001, label = lbl, size = BTNSIZE)
+           button.SetToolTipString(tips[i])
+           self.btns.append(button)
+        
+        # -- CREATION OF BUTTON NAME & ID DICTIONARY --
+        self.btnIDs = {}
+        for btn in self.btns:
+            self.btnIDs[btn.GetLabel()] = btn.GetId()
         
         # -- CREATION OF STATUS BAR --
         sb = wx.StatusBar(self, -1)
-        sb.SetFieldsCount(2)
-        sb.SetStatusWidths([-1, -3])
+        sb.SetFieldsCount(3)             # inital dummy field prevents
+        sb.SetStatusWidths([0, -1, -3])  # metron from being overwritten
         
         # -- SETTING OF STATUS BAR --
         self.SetStatusBar(sb)
@@ -140,20 +159,25 @@ class ScandroidFrame(wx.Frame):
         
         # -- BINDING OF BUTTON HANDLERS --
         btnHandlers = [self.OnScanBtn, self.OnStepBtn,
-                       self.OnSaveBtn, self.OnCancelBtn,
+                       self.OnStoreBtn, self.OnCancelBtn,
                        self.OnLoadBtn, self.OnTypeBtn,
-                       self.OnSaveTxtBtn, self.OnReloadBtn]
+                       self.OnSaveTextBtn, self.OnSaveScanBtn]
         for i, h in enumerate(btnHandlers):
             self.Bind(wx.EVT_BUTTON, btnHandlers[i], id = i + 1001)
         
         # -- CREATION OF MENU BAR AND MENUS (FILE, EDIT, and SCAN) --
         menuBar = wx.MenuBar()
-        menuTitles = ['File', 'Edit', 'Scan']
-        menuItems = [['&Load text file\tCtrl+L', 'T&ype text\tCtrl+Y',
-                      '&Reload dictionary', '&Save scanned text\tCtrl+S'],
-                     ['Select &all\tCtrl+A', '&Copy to clipboard\tCtrl+C',
-                      '&Find in text\tCtrl+F', 'Toggle line &numbers\tCtrl+N'],
-                     ['S&tep\tCtrl+T', 'Scan\tCtrl+2', 'S&ave line\tCtrl+3',
+        menuTitles = ['&File', '&Edit', '&Scan']
+        menuItems = [['L&oad text file\tCtrl+O',
+                      'Type &new\tCtrl+N',
+                      '&Save typed text\tCtrl+S',
+                      'Save scansion and notes\tCtrl+4'],
+                     ['Select &all\tCtrl+A', '&Copy\tCtrl+C',
+                      'Cut\tCtrl+X', 'Paste\tCtrl+V',
+                      '&Find in text\tCtrl+F',
+                      'Toggle &line numbers\tCtrl+L'],
+                     ['Scan\tCtrl+2', 'S&tep\tCtrl+T',
+                      'Store\tCtrl+3', 'Canc&el\tCtrl+E',
                       'Force anapestics', 'Force iambics',
                       'Force iambic alg. 1', 'Force iambic alg. 2',
                       'Next unscanned line\tCtrl+1', '(Scan All)']]
@@ -165,22 +189,30 @@ class ScandroidFrame(wx.Frame):
             for j, item in enumerate(menuItems[i]):
                 self.menus[i].Append((i + 1) * 100 + (j + 1), item)
             menuBar.Append(self.menus[i], title)
+        
+        # -- CREATION OF MENU ITEM NAME & ID DICTIONARY --
+        self.menuItemIDs = {}
+        for menu in self.menus:
+            for item in menu.GetMenuItems():
+                self.menuItemIDs[item.GetLabel()] = item.GetId()
 
         # -- CREATION OF HELP MENU --
         HelpMenu = wx.Menu()
-        HelpMenu.Append(wx.ID_ABOUT, "About the Scandroid")
+        HelpMenu.Append(wx.ID_ABOUT, "About the Scandroid", ' ')
         menuBar.Append(HelpMenu, "&Help")
         app.SetMacHelpMenuTitleName("&Help")
 
         # -- BINDING OF MENU HANDLERS --  
         menuHandlers = [[self.OnLoadBtn, self.OnTypeBtn,
-                         self.OnReloadBtn, self.OnSaveTxtBtn],
+                         self.OnSaveTextBtn, self.OnSaveScanBtn],
                         [self.SelectAll, self.CopyToClipboard,
+                         self.CutToClipboard, self.PasteFromClipboard,
                         self.OnFindText, self.ShowHideLineNums],
-                        [self.OnStepBtn, self.OnScanBtn,
-                         self.OnSaveBtn, self.ForceMetron,
-                         self.ForceMetron, self.ForceAlg,
-                         self.ForceAlg, self.GotoNextUnscannedLine,
+                        [self.OnScanBtn, self.OnStepBtn,
+                         self.OnStoreBtn, self.OnCancelBtn,
+                         self.ForceMetron, self.ForceMetron,
+                         self.ForceAlg, self.ForceAlg,
+                         self.GotoNextUnscannedLine,
                          self.ScanEverything]] # <-- ALSO FOR TESTING      
         for i, menu in enumerate(menuHandlers):
             for j, item in enumerate(menu):
@@ -189,7 +221,7 @@ class ScandroidFrame(wx.Frame):
         self.Bind(wx.EVT_FIND, self.OnFind)
         self.Bind(wx.EVT_FIND_NEXT, self.OnFind)
         # THE FOLLOWING FIXES MAC-SPECIFIC CLOSING BEHAVIOR
-        ex = self.menus[0].Append(wx.ID_EXIT,'E&xit','Terminate the program')
+        ex = self.menus[0].Append(wx.ID_EXIT,'&Quit\tCtrl+Q', ' ')
         self.Bind(wx.EVT_MENU, self.OnClose, ex) 
         
         # -- SETTING OF MENU BAR --
@@ -242,29 +274,57 @@ class ScandroidFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def GetButton(self, label):
+        for btn in self.btns:
+            if btn.GetId() == self.btnIDs[label]:
+                return btn
+                
+    def GetMenuItem(self, label):
+        for menu in self.menus:
+            for item in menu.GetMenuItems():
+                if item.GetId() == self.menuItemIDs[label]:
+                    return item
+ 
+    def DisableAllScanButtons(self):
+        self.EnableScanButtons(False)
+        self.EnableScansionSaving(False)
+        self.EnableIambicAlgForcing(False)
+ 
+    def EnableScanButtons(self, enable=True, ignoreCancel=False):
+        """Enable/disable buttons except Store
+        (enabled after there's something to store)"""
+        self.GetButton('Scan').Enable(enable)
+        self.GetButton('Step').Enable(enable)
+        self.GetMenuItem('Step').Enable(enable)
+        self.GetMenuItem('Scan').Enable(enable)
+        if not ignoreCancel:
+            self.GetButton('Cancel').Enable(enable)
+            self.GetMenuItem('Cancel').Enable(enable)
+        
+    def EnableScansionSaving(self, enable=True):
+        self.GetButton('Store').Enable(enable)
+        self.GetButton('Save Scansion').Enable(enable)
+        self.GetMenuItem('Store').Enable(enable)
+        self.GetMenuItem('Save scansion and notes').Enable(enable)
+
+    def EnableNonScanMenuOptions(self, enable=True):
+        self.GetMenuItem('Force anapestics').Enable(enable)
+        self.GetMenuItem('Force iambics').Enable(enable)
+        self.GetMenuItem('Next unscanned line').Enable(enable)
+        
+    def EnableIambicAlgForcing(self, enable=True):
+        self.GetMenuItem('Force iambic alg. 1').Enable(enable)
+        self.GetMenuItem('Force iambic alg. 2').Enable(enable)
+        
     def ClearWorkBoxes(self):
         """Clear text and scansion fields, not Notes window; disable buttons.
 
         Do not clear Notes window; we want it to stay, for example, after a
-        scansion has been saved with OnSaveBtn(). We disable the Save button
-        for now, because there's nothing yet to save."""
+        scansion has been stored with OnStoreBtn(). We disable scansion
+        saving because there is nothing to store or save yet."""
         self.TextLine.Clear()
         self.ScanLine.Clear()
-        self.btns[2].Disable()
-        
-    def EnableScanButtons(self, enable=True):
-        """Enable/disable buttons except Save
-        (enabled after there's something to save)"""
-        self.btns[0].Enable(enable)
-        self.btns[1].Enable(enable)
-        self.btns[3].Enable(enable)
-        self.menus[2].Enable(301, enable)
-        self.menus[2].Enable(302, enable)
-        self.menus[2].Enable(306, enable)
-        self.menus[2].Enable(307, enable)
-        if not enable:
-            self.btns[2].Enable(False)
-            self.menus[2].Enable(303, False)
+        self.EnableScansionSaving(False)
 
     def UpdateStatusBar(self, metron=2, linefeet=5, linefeetset=True):
         if metron == 2: mfieldtxt = "metron: IAMBIC"
@@ -272,30 +332,28 @@ class ScandroidFrame(wx.Frame):
         if linefeetset and len(lineLengthName) > linefeet:
             footfieldtxt = "feet per line: " + lineLengthName[linefeet]
         else: footfieldtxt = "feet per line: VARIABLE"
-        self.SetStatusText(mfieldtxt, 0)
-        self.SetStatusText(footfieldtxt, 1)
+        self.SetStatusText(mfieldtxt, 1)
+        self.SetStatusText(footfieldtxt, 2)
         
     def ShowHideLineNums(self, evt):
         self.WholeText.lineNumsVisible = not self.WholeText.lineNumsVisible
         self.WholeText.ToggleLineNumbers()
 
-    def CopyToClipboard(self, evt):
-        which = self.FindFocus()
-        if hasattr(which, "CopySelection"):
-            which = which.CopySelection()
-            if which == self.NotesWindow:
-                end = self.NotesWindow.GetLastPosition()
-                self.NotesWindow.SetSelection(end, end)
-            elif not which: return
-            else: which.SetSelection(0, 0)
-        else: return
-            
     def SelectAll(self, evt):
-        which = self.FindFocus()
-        if which == self.WholeText:
-            self.WholeText.SetSelection(0, self.WholeText.GetLength())
-        elif which == self.NotesWindow:
-            self.NotesWindow.SetSelection(-1, -1)
+        try: self.FindFocus().SelectAll()
+        except: return
+        
+    def CopyToClipboard(self, evt):
+        try: self.FindFocus().Copy()
+        except: return
+        
+    def CutToClipboard(self, evt):
+        try: self.FindFocus().Cut()
+        except: return
+        
+    def PasteFromClipboard(self, evt):
+        try: self.FindFocus().Paste()
+        except: return
             
     def CreateFindDialog(self):
         data = wx.FindReplaceData()
@@ -375,37 +433,68 @@ class ScandroidFrame(wx.Frame):
         """
         self.ClearWorkBoxes()		# no old lines or previous scansions
         self.NotesWindow.Clear()		# nor old notes
-        #self.WholeText.SetReadOnly(1)	# no edits while scanning (till Save)
-        self.EnableScanButtons()
-        self.leadspace = self.leadSpaceRE.match(txt)	# for Save btn
         self.linetext = txt.strip()
+        # If someone pastes a huge block of text that is all one line,
+        # the Scandroid will most likely crash. Here, I've imposed a
+        # limit of 450 characters, which is about six sentences or
+        # a small paragraph. The Scandroid can't handle much more.
+        if (len(self.linetext)) > 450:
+            self.E.Explain("\n\nERROR: The line you are attempting to scan " +
+                           "is too long for the Scandroid. Please divide " +
+                           "your text into smaller lines and try again.")
+            self.DisableAllScanButtons(); return
+        #self.WholeText.SetReadOnly(1)	# no edits while scanning (till Store)
+        self.EnableScanButtons()
+        self.leadspace = self.leadSpaceRE.match(txt)	# for Store btn
         self.TextLine.AppendText(self.linetext)	# put selected line in the box
         self.lineNum = num			# where to put scansion when done
         self.CurrentStep = 0			# (re)start the procedure
-        if self.Metron == 2:			# iambic-only preparations
-            if random.randint(0,1): self.whichAlgorithm = 1	# begin at random
-            else: self.whichAlgorithm = 2
+        # iambic-only preparations
+        if self.Metron == 2:
+            self.whichAlgorithm = random.randint(1, 2) # begin at random
             self.SetupScansionSteps(iambic=True,
                                     algorithm1=(self.whichAlgorithm==1))
             self.OneIambicAlgFailed = False
         #self.E.Explain("Press Step to inch through, Scan to rush")
         self.E.Explain("\n\n\"%s\"" % self.linetext)
+        self.SM.ParseLine(self.linetext)
+        # If the text was loaded, the parameters have already been deduced.
+        if self.loadedtext: return
+        # Otherwise, if it's being typed, we want to figure out the params.
+        # The feet per line will stay as variable.
         try:
-            self.SM.ParseLine(self.linetext)
+            #self.SM.SetLineFeet(5, False); theLengths = 0
+            if not self.forceanap:
+                (score, length) = self.SM.ChooseAlgorithm(self.E,
+                                              deducingParams=True)
+                iambCompTotal = score
+            if not self.forceiamb:
+                (score, length) = self.SM.GetBestAnapLexes(self.E,
+                                               deducingParams=True)
+                anapCompTotal = score
+            if not self.forceiamb and not self.forceanap:
+                if iambCompTotal < anapCompTotal:
+                    self.Metron = 2
+                else:
+                    self.Metron = 3
+                self.SetupScansionSteps(iambic=(self.Metron==2))
+            #self.SM.SetLineFeet(self.LineFeet, self.LineFeetSet)
+            self.UpdateStatusBar(self.Metron, self.LineFeet, self.LineFeetSet)
         except:
-            #self.ErrorMessage(self.SM.ParseLine, self.linetext)
             traceback.print_exc()
 
 ## - - - - - button & other routines for treatment of individual lines
     def OnStepBtn(self, evt):
         """Perform next scansion step in self.Steps
         (indexed by self.CurrentStep)"""
+        self.EnableScansionSaving()
+        if not self.CurrentStep:
+            self.EnableNonScanMenuOptions(False)
         if self.CurrentStep == len(self.Steps) - 1:
-            self.btns[0].Disable()
-            self.btns[1].Disable()
-        if self.CurrentStep >= len(self.Steps): return	# end of steps, stop
-        self.btns[2].Enable(True)		 # now there'll be something to save
-        self.menus[2].Enable(303, True)
+            self.EnableNonScanMenuOptions()
+            self.EnableScanButtons(False, ignoreCancel=True)
+        if self.CurrentStep >= len(self.Steps):
+            return	 # end of steps, stop
         #if self.CurrentStep == 0: self.NotesWindow.Clear()
         self.NotesWindow.AppendText('\n\n')
         self.E.Explain(self.Steps[self.CurrentStep][0] + '  ')	# show header
@@ -414,8 +503,7 @@ class ScandroidFrame(wx.Frame):
         except:
             #self.ErrorMessage(self.Steps[self.CurrentStep][1])
             traceback.print_exc()
-            self.CurrentStep = len(self.Steps)		# bail out!
-            return
+            self.AbortScansion(); return # bail out!
         # sneaky use of result for iambic ChooseAlgorithm step
         if self.CurrentStep == 2 and self.Metron == 2:
             if result: self.whichAlgorithm = 1 # arbitrary T/F code to put
@@ -426,37 +514,33 @@ class ScandroidFrame(wx.Frame):
                 self.SetupScansionSteps(iambic=True,
                                         algorithm1=(self.whichAlgorithm == 1))
                 self.ShowScanLine(scanline)
-                self.menus[2].Enable(306, True)
-                self.menus[2].Enable(307, True)
+                self.EnableIambicAlgForcing()
                 self.CurrentStep += 1
-            else: self.CurrentStep = len(self.Steps) # stop
+            else: self.AbortScansion() # stop
         else:	         # ALL steps except iambic ChooseAlgorithm
             if scanline: 
 #		        self.ShowScanLine(scanline, showAlg=True) # FOR TESTING ONLY
                 self.ShowScanLine(scanline)
             if not result:		# some step FAILED
-                if self.Metron == 2 and self.OneIambicAlgFailed:
-                    self.E.Explain("\n\nAbject failure of both "
-                                   + "iambic methods!\n")
-                    self.ShowScanLine(self.SM.P.GetScanString() + '    ***')
-                    self.CurrentStep = len(self.Steps)		# quit
-                elif self.Metron == 3:
-                    self.ShowScanLine(self.SM.P.GetScanString() + '    ***')
-                    self.CurrentStep = len(self.Steps)		# quit
-                else:
+                if self.Metron == 2 and not self.OneIambicAlgFailed:
                     self.OneIambicAlgFailed = True # orig. set in ShowTextLine
                     scanline = self.SM.RestartNewIambicAlg(self.E,
                                                            self.whichAlgorithm,
                                                            scanline)
                     self.ShowScanLine(scanline)
-                    if self.whichAlgorithm == 1: self.whichAlgorithm = 2
-                    else: self.whichAlgorithm = 1
+                    self.SwitchIambicAlg()
                     self.SetupScansionSteps(iambic=True,
                                          algorithm1=(self.whichAlgorithm == 1))
                     self.CurrentStep = FORKSTEP
+                else:
+                    if self.Metron == 2:
+                        self.E.Explain("\n\nAbject failure of both "
+                                       + "iambic methods!")
+                    self.ShowScanLine(self.SM.P.GetScanString() + '   **** ')
+                    self.TextLine.AppendText('   (FAIL)')
+                    self.AbortScansion() # quit
             else:
-                self.menus[2].Enable(306, False)
-                self.menus[2].Enable(307, False)
+                self.EnableIambicAlgForcing(False)
                 self.CurrentStep += 1
 
     def OnScanBtn(self, evt):
@@ -466,12 +550,17 @@ class ScandroidFrame(wx.Frame):
         while step < laststep:		#  'for step in range(len(self.Steps))'
             self.OnStepBtn(evt)
             step = self.CurrentStep
+            
+    def AbortScansion(self):
+        self.EnableScanButtons(False, ignoreCancel=True)
+        self.EnableNonScanMenuOptions()
+        self.CurrentStep = len(self.Steps)
     
     def GotoNextUnscannedLine(self, evt):
         if self.WholeText.GetNextUnscannedLine(): return True	# not used!
         else: return False			# for test routine ScanEverything only
 
-    def OnSaveBtn(self, evt):
+    def OnStoreBtn(self, evt):
         """Insert currrent-stage scansion into
         Text panel above line it belongs to"""
         currentscansion = self.ScanLine.GetValue()
@@ -480,15 +569,15 @@ class ScandroidFrame(wx.Frame):
         if self.leadspace:
             currentscansion = self.leadspace.group() + currentscansion
         self.WholeText.PutLineBack(self.lineNum, currentscansion) # make it so
-        self.ClearWorkBoxes()		# clarify status, flag to allow editing
-        self.EnableScanButtons(False)
+        self.GetButton('Store').Enable(False)
+        self.GetMenuItem('Store').Enable(False)
     
     def ScanEverything(self, evt):
         while 1:
             if not self.GotoNextUnscannedLine(evt): 
                 break
             self.OnScanBtn(evt)
-            self.OnSaveBtn(evt)
+            self.OnStoreBtn(evt)
 
     def OnCancelBtn(self, evt):
         """Return all to condition before line was selected"""
@@ -496,8 +585,8 @@ class ScandroidFrame(wx.Frame):
         self.WholeText.SetReadOnly(0)		# allow editing again
         p = self.WholeText.GetCurrentPos()
         self.WholeText.SetSelection(p, p)
-        self.EnableScanButtons(False)
-        self.NotesWindow.Clear()			# unlike save!
+        self.DisableAllScanButtons()
+        self.NotesWindow.Clear()			# unlike store!
     
     def RestartLineAfterCancel(self):
         """Zero the conditions for scansion of same line as was in process
@@ -507,7 +596,6 @@ class ScandroidFrame(wx.Frame):
         is falling apart!). Assume that self.lineNum and self.linetext are
         current; don't change the algorithm, however it was chosen.
         """
-        
         # Prevents an error if user changes dictionary
         # syllabification for a word in default text.
         if not hasattr(self, 'linetext'): return
@@ -524,42 +612,81 @@ class ScandroidFrame(wx.Frame):
 
 ## - - - - - button routines for handling text (files etc)
     def OnLoadBtn(self, evt):
-#        wildcard = 'All files (*.*) | *.*' WHY DOESN'T THIS WORK ANY MORE??
-        wildcard = '*.*'
-        if not self.loaddir: defDir = os.getcwd()
-        else: defDir = self.loaddir
+        if not self.loadPath: dir = os.getcwd()
+        else: dir = self.loadPath
         dlg = wx.FileDialog(self, message="Choose a plain text file",
-                            defaultDir=defDir, defaultFile="",
-                            wildcard=wildcard, style=wx.OPEN | wx.CHANGE_DIR)
+                            defaultDir=dir, defaultFile="", wildcard="*.*",
+                            style=wx.OPEN | wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
             self.ClearWorkBoxes()
             self.NotesWindow.Clear()
-            f = open(dlg.GetPath(), 'rU')
-            self.loaddir = dlg.GetPath()
-            self.WholeText.DisplayText(f.read())
-            f.close()
-            dlg.Destroy()
-            self.DeduceParameters()	# sets self.LineFeet, .Metron,
-        else: dlg.Destroy()         #           .LineFeetSet (T/F)
-        
-    def OnSaveTxtBtn(self, evt):
-        dlg = wx.FileDialog(self, message="File to save scanned text",
-                    defaultDir=os.getcwd(), defaultFile='scansion',
-                    wildcard="*.txt", style=wx.SAVE | wx.CHANGE_DIR |
-                                                  wx.OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_OK:
-            defenc = wx.GetDefaultPyEncoding()
-            f = open(dlg.GetPath(), 'w')
-            textToWrite = self.WholeText.GetText()
-            textToWrite = textToWrite.encode(defenc)
-            f.write(textToWrite)
-            #for c in range(self.WholeText.GetLineCount()):
-                #f.write(self.WholeText.GetLine(c))
-            f.close()
+            self.loadPath = dlg.GetPath()
+            try:
+                with open(self.loadPath, 'rU') as f:
+                    self.WholeText.DisplayText(f.read())
+                self.loadedtext = True
+                self.forceiamb, self.forceAnap = False, False
+                self.DeduceParameters()	# sets LineFeet, Metron, & LineFeetSet
+            except:
+                self.WholeText.DisplayText('')
+                self.E.Explain("\n\nERROR: The Scandroid could not load the"
+                               + " text from the file you have specified. You"
+                               + " may need to copy the text from the file"
+                               + " and paste it into the Scandroid.\n")
         dlg.Destroy()
         
+    def OnSaveTextBtn(self, evt):
+        if not self.savePath: dir = os.getcwd()
+        else: dir = self.savePath
+        dlg = wx.FileDialog(self, message="File to save scanned text",
+                    defaultDir=dir, defaultFile='*.txt', wildcard="*.txt",
+                    style=wx.SAVE | wx.CHANGE_DIR | wx.OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_OK:
+            defenc = wx.GetDefaultPyEncoding()
+            textToWrite = self.WholeText.GetText().encode(defenc)
+            self.savePath = dlg.GetPath()
+            try:
+                with open(self.savePath, 'w') as f:
+                    f.write(textToWrite)
+                    self.E.Explain("\n\nTyped text written to "
+                                   + self.savePath + "\n")
+            except:
+                self.E.Explain("\n\nERROR: The Scandroid could not save the"
+                               + " text to the file you have specified. You"
+                               + " may need to manually copy the information"
+                               + " and save it to a file.\n")
+        dlg.Destroy()
+        
+    def OnSaveScanBtn(self, evt):
+        defenc = wx.GetDefaultPyEncoding()
+        # Get values of ScanLine, TextLine, and NotesWindow.
+        scansion = self.ScanLine.GetValue()
+        textline = self.TextLine.GetValue()
+        scanNotes = self.NotesWindow.GetValue()
+        # Make a divider for the scanned line based on line length.
+        divider = max(len(scansion), len(textline)) * '-'
+        # Sandwich the scansion and textline between two dividers.
+        scannedLine = '\n'.join([divider, scansion, textline, divider])
+        # Concatenate everything to form one string that will be written.
+        textToWrite = (scannedLine + scanNotes + '\n\n').encode(defenc)
+        filename = str(datetime.now().date()) + '-Scansions.txt'
+        pathname = os.path.join(os.getcwd(), filename)
+        try:
+            with open(pathname, 'a') as f:
+                f.write(textToWrite)
+                self.E.Explain("\n\nScansion and notes " +
+                               "written to " + pathname + "\n")
+        except:
+            self.E.Explain("\n\nERROR: The Scandroid could not automatically"
+                           + " save the scansion and notes. You will need to"
+                           + " to manually copy the information and save"
+                           + " it to a file.\n")
+        self.GetButton('Save Scansion').Enable(False)
+        self.GetMenuItem('Save scansion and notes').Enable(False)
+
     def OnTypeBtn(self, evt):
         # safety check, if any scansions?? ("do you want to save...")
+        self.loadedtext = False
         self.ClearWorkBoxes()
         self.WholeText.ClearAll()
         self.WholeText.SetFocus()
@@ -573,15 +700,9 @@ class ScandroidFrame(wx.Frame):
         self.UpdateStatusBar(self.Metron, self.LineFeet, self.LineFeetSet)
         self.SM.SetLineFeet(5, False)
         self.SetupScansionSteps()		# restore iambic steps
-        
-    def OnReloadBtn(self, evt):
-        del(self.SM.SD.Dict)
-        self.SM.SD.Dict = {}
-        self.SM.SD.LoadDictionary()
-        self.E.Explain("\n\n(default dictionary reloaded)\n")
 
 ## - - - - - establish major context for scansion work
-    def DeduceParameters(self, forceiamb=False, forceanap=False):
+    def DeduceParameters(self):
         """When text is loaded, read multiple lines;
         find metron and linelength.
         
@@ -597,8 +718,7 @@ class ScandroidFrame(wx.Frame):
         With one or the other set, skip non-pertinent parts.
         """
         textlines = self.WholeText.GetLineCount()
-        iambLens = []
-        anapLens = []
+        iambLens, anapLens = [], []
         iambCompTotal = anapCompTotal = 0
         linesToSample = 12
         theLengths = 0 # initialize the length variable
@@ -611,7 +731,7 @@ class ScandroidFrame(wx.Frame):
                 continue	# skip a title or other non-verse
             i += 1	# count of "real" lines
             self.SM.ParseLine(line)
-            if not forceanap:
+            if not self.forceanap:
                 try:
                     (score, length) = self.SM.ChooseAlgorithm(self.E,
                                                           deducingParams=True)
@@ -620,7 +740,7 @@ class ScandroidFrame(wx.Frame):
                 except: traceback.print_exc()
                 iambCompTotal += score
                 if score < 100: iambLens.append(length)
-            if not forceiamb:
+            if not self.forceiamb:
                 try:
                     (score, length) = self.SM.GetBestAnapLexes(self.E,
                                                           deducingParams=True)
@@ -629,7 +749,7 @@ class ScandroidFrame(wx.Frame):
                 except: traceback.print_exc()
                 anapCompTotal += score
                 if score < 100: anapLens.append(length)
-        if not forceiamb and not forceanap:
+        if not self.forceiamb and not self.forceanap:
             if iambCompTotal < anapCompTotal:
                 self.Metron = 2
                 theLengths = iambLens
@@ -639,7 +759,7 @@ class ScandroidFrame(wx.Frame):
                 theLengths = anapLens
                 self._setLineLengthIfPossible(theLengths)
             self.SetupScansionSteps(iambic=(self.Metron==2))
-        if not forceiamb and not forceanap:
+        if not self.forceiamb and not self.forceanap:
             self.E.ExpDeduceParams(self.Metron, self.LineFeet,
                                               self.LineFeetSet)
         self.SM.SetLineFeet(self.LineFeet, self.LineFeetSet)
@@ -660,6 +780,29 @@ class ScandroidFrame(wx.Frame):
             self.LineFeetSet = True
         else: self.LineFeetSet = False
 
+    def ForceMetron(self, evt):
+        """Menu-only choice to force scansion
+        iambic/anapestic till next Load."""
+        self.OnCancelBtn(dummyevent)	# before msg or will be erased
+        which = evt.GetId()
+        if which == self.menuItemIDs['Force anapestics']:
+            self.Metron = 3
+            self.forceanap = True; self.forceiamb = False
+            self.E.Explain("\nForced switch to anapestic scansion\n")
+            self.SetupScansionSteps(iambic=False)
+            self.DeduceParameters()
+        elif which == self.menuItemIDs['Force iambics']:
+            self.Metron = 2
+            self.forceiamb = True; self.forceanap = False
+            self.E.Explain("\nForced switch to iambic scansion\n")
+            self.SetupScansionSteps(iambic=True)
+            self.DeduceParameters()
+        else: return
+        if self.LineFeetSet:
+            self.E.Explain("implied line length is %s feet\n\n"
+                                                % self.LineFeet)
+        else: self.E.Explain("implied line length is variable\n\n")
+        
     def ForceAlg(self, evt):
         """Menu-choice to override automatic choice of algorithm for iambics.
         
@@ -670,34 +813,20 @@ class ScandroidFrame(wx.Frame):
         at the end of that crucial step.
         """
         which = evt.GetId()
-        if which == 306:
+        if which == self.menuItemIDs['Force iambic alg. 1']:
             self.whichAlgorithm = 1
             self.E.Explain("\n\nAlgorithm 1 forced")
-        else: 
+        elif which == self.menuItemIDs['Force iambic alg. 2']:
             self.whichAlgorithm = 2
             self.E.Explain("\n\nAlgorithm 2 forced")
+        else: return
         self.SetupScansionSteps(iambic=True,
                                 algorithm1=(self.whichAlgorithm == 1))
-
-    def ForceMetron(self, evt):
-        """Menu-only choice to force scansion
-        iambic/anapestic till next Load."""
-        self.OnCancelBtn(dummyevent)	# before msg or will be erased
-        which = evt.GetId()
-        if which == 304:
-            self.Metron = 3
-            self.E.Explain("\nForced switch to anapestic scansion\n")
-            self.SetupScansionSteps(iambic=False)
-            self.DeduceParameters(forceanap=True)
-        else:
-            self.Metron = 2
-            self.E.Explain("\nForced switch to iambic scansion\n")
-            self.SetupScansionSteps(iambic=True)
-            self.DeduceParameters(forceiamb=True)
-        if self.LineFeetSet:
-            self.E.Explain("implied line length is %s feet\n\n"
-                                                % self.LineFeet)
-        else: self.E.Explain("implied line length is variable\n\n")
+                                
+    def SwitchIambicAlg(self):
+        if self.whichAlgorithm == 1:
+            self.whichAlgorithm = 2
+        else: self.whichAlgorithm = 1
 
 # - - - - - - - - - - - end of ScandroidFrame class - - - - - - - - - - - -
 

@@ -110,6 +110,8 @@ class ScansionMachine:
                 syls = self.SD.Dict[word[:-2]][:]
                 if syls[-1].isupper(): syls[-1] += 'ED'
                 else: syls[-1] += 'ed'
+                #if syls[-1].isupper(): syls.append('ED')
+                #else: syls.append('ed')
                 return syls
             except KeyError:
                 try:
@@ -652,9 +654,8 @@ class ScansionMachine:
         else:
             (needfeet, excess) = divmod(numsyls, 3)
           # assume anapestic lines may be short but never long, exc. terminals
-            if scansion:
-                if scansion[-1] == 'x':
-                    excess -= 1	# term. slack doesn't add feet
+            if scansion and scansion[-1] == 'x':
+                excess -= 1	# term. slack doesn't add feet
             if excess > 0: needfeet += 1 # could be fooled by 3 disyl feet!
             altlen = AltLineLenCalc(scansion)
             needfeet = max(needfeet, altlen)
@@ -662,8 +663,7 @@ class ScansionMachine:
         if scansion[-2:] == 'xx': # mark promo., treat as stressed (x% or /x%)
             scansion = scansion[:-1] + '%'
             self.P.AddScanMark('%', len(scansion)-1)
-        if scansion:
-            if scansion[-1] == 'x':	# see AnapSubs for notes on last feet!
+        if scansion and scansion[-1] == 'x': # see AnapSubs for last feet notes
                 tailstart = scansion.rfind('/')				  # point to penult
                 tailstart = scansion.rfind('/', 0, tailstart) # stress in line
                 tail = numsyls - tailstart - 1
@@ -677,7 +677,6 @@ class ScansionMachine:
                 needfeet -= 1
                 numsyls -= tail
                 scansion = scansion[:-tail]
-            else: lastfoot = ''
         else: lastfoot = ''
         # dividing point for anapestic steps
         if numsyls > needfeet * 3: return []		# hypermetrical??
@@ -724,12 +723,14 @@ class ScansionMachine:
         numsyls = len(marks)
         if not lineDat['lfeetset']:		# calculate line's foot-length
             (lineDat['lfeet'], excess) = divmod(numsyls, 3)
-            if marks[-1] == 'x': excess -= 1	# term. slack doesn't add feet
-            if excess > 0: lineDat['lfeet'] += 1
+            if marks and marks[-1] == 'x':
+                excess -= 1	  # term. slack doesn't add feet
+            if excess > 0:
+                lineDat['lfeet'] += 1
         if marks[-2:] == 'xx':	  # mark promo., treat as stressed (x% or /x%)
             marks = marks[:-1] + '%'
             self.P.AddScanMark('%', len(marks)-1)
-        if marks[-1] == 'x':		# see AnapSubs for notes on last feet!
+        if marks and marks[-1] == 'x':	# see AnapSubs for notes on last feet!
             tailstart = marks.rfind('/')				# point to penult
             tailstart = marks.rfind('/', 0, tailstart)	# stress in line
             tail = numsyls - tailstart - 1
@@ -780,7 +781,12 @@ class ScansionMachine:
             logger.ExpAnapTrisyl(needfeet, lineDat['lfeet'])
         else:
             needDisyls = (needfeet * 3) - numsyls
-            if needDisyls > needfeet: return self.P.GetScanString(), False
+            if needDisyls > needfeet:
+                # I added this explanation since there wasn't one before.
+                # What would be a better way to explain this fail?
+                logger.Explain("\nFAIL! needed disyllables"
+                               + " exceeds needed feet")
+                return self.P.GetScanString(), False
             marks = self.AnapPromoteSlack(marks, insertmark=True)
             numlist = '2' * needDisyls + '3' * (needfeet - needDisyls)
             listoflists = uniquePermutations(numlist)
