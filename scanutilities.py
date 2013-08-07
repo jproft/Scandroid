@@ -11,19 +11,27 @@
 #
 # This module contains utility classes and out-of-class functions.
 
-# This data class will eventually replace the free-floating structure in
-# scanfuncs.py. It will probably have a few get/set methods to streamline
-# the code that uses it. So far, it's doing nothing.
 class LineData:
     def __init__(self):
-        self.linetext = ''
-        self.lfeet = 5
-        self.lfeetset = False
-        self.footlist = []
-        self.lastfoot = ''
-        self.hremain = (0, 0)
-        self.midremain = (0, 0)
-        self.promcands = []
+        self.data = {'linetext': '',
+                     'lfeet': 5,
+                     'lfeetset': False,
+                     'footlist': [],
+                     'lastfoot': '',
+                     'hremain': (0, 0),
+                     'midremain': (0,0),
+                     'promcands': [] }
+
+    def setData(self, **kwargs):
+        for key, value in kwargs.items():
+            if key in self.data.keys():
+                self.data[key] = value
+                
+    def appendFoot(self, foot):
+        self.data['footlist'].append(foot)
+        
+    def insertFoot(self, point, foot):
+        self.data['footlist'].insert(point, foot)
 
 
 ## our handy helpers from the ActiveState Cookbook site!
