@@ -67,7 +67,8 @@ class ScansionMachine:
                 lineindex += len(wORD)
                 continue
             # punct and whitespace to Positioner, exc. words like "'twas"
-            if not wORD[0].isalpha() and (wORD[0] != '\'' or wORD == '\''):
+            #if not wORD[0].isalpha() and (wORD[0] != '\'' or wORD == '\''):
+            if not self._stripPunct(wORD):
                 lineindex = self.P.AddPunct(wORD, lineindex)
                 continue
             w = wORD.lower()	  # for ALL internal use! e.g. in dictionary!
@@ -112,6 +113,14 @@ class ScansionMachine:
                     return syls
                 except KeyError: return None
         else: return None
+        
+    def _stripPunct(self, word):
+        """Removes leading and trailing non-alpha characters."""
+        while word and not word[0].isalpha():
+            word = word[1:]
+        while word and not word[-1].isalpha():
+            word = word[:-1]
+        return word
         
 ## - - - - - first visible steps of ANY scansion
     def ShowSyllables(self, logger):
