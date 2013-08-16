@@ -10,8 +10,8 @@
 # OSI Certified Open Source Software
 #
 # Text, strings, and generally useful globals the Scandroid needs;
-# Also, the Explainer class, which gabs about what we're doing at every
-# stage. Also, some non-class utility functions.
+# Also, the Explainer class, which gabs about what we're doing at
+# every stage. Also, some non-class utility functions.
 
 abouttxt = \
 """
@@ -41,9 +41,9 @@ Pentameters exhibit. It might train
 Scanning, or at least run through the stations.
 """
 
-STRESS		= '/'		# these are bogus, in that these signs are hard-
-SLACK		= 'x'		#  wired into, e.g., search strings; but maybe
-PROMOTED	= '%'	#  having them here will be a reminder
+STRESS		= '/'       # these are bogus, in that these signs are hard-
+SLACK		= 'x'       #  wired into, e.g., search strings; but maybe
+PROMOTED	= '%'       #  having them here will be a reminder
 SYLMARK = '#'
 FOOTDIV	= '|'
 

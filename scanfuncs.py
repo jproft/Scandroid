@@ -10,8 +10,8 @@
 # OSI Certified Open Source Software
 #
 # This Scansion Machine class has the methods called by Scandroid to do the 
-# actual scansion work. It owns a dictionary and instances of a Syllabizer and
-# a Positioner for some of the grunt work.
+# actual scansion work. It owns a dictionary and instances of a Syllabizer
+# and a Positioner for some of the grunt work.
 
 
 import sre
@@ -313,7 +313,7 @@ class ScansionMachine:
                 points += 4
             # (does my code even allow for this to happen??)
             if f in ('dactyl', 'cretic', 'bacchius'): points += 10
-            # esepcially disruptive positional variations
+            # especially disruptive positional variations
             if f == 'trochee':
                 if inx == len(feet) - 1: points += 6	# scazon
                 if prevIsTrochee: points += 8	# "sprung rhythm"
@@ -584,9 +584,9 @@ class ScansionMachine:
         return self.P.GetScanString(), True
     
     def HowWeDoing(self, logger):
-        """Report results of iambic scansion: feet, and number of sustitutions.
+        """Report results of iambic scansion: feet and number of substitutions.
         
-        The anlysis is crude even compared with _measureComplexity. Kiparsky 
+        The analysis is crude even compared with _measureComplexity. Kiparsky 
         may suggest better possibilities, but they may not be usable without
         more intelligence about syntax than the Scandroid has/likely will have.
         """
@@ -648,8 +648,8 @@ class ScansionMachine:
         silently to report success or failure.
         
         Fairly parallel to iambic DoAlgorithm. Called by DeduceParameters
-        directly for quick judgment. Also called, with alternate
-        stress-resoution preliminary scansions, by GetBestAnapLexes.
+        directly for quick judgement. Also called, with alternate
+        stress-resolution preliminary scansions, by GetBestAnapLexes.
         """
         numsyls = len(scansion)
         if self.LD.data['lfeetset']:
@@ -842,7 +842,7 @@ class ScansionMachine:
         """Final-condition check and Explainer call
         to show results of anap scansion.
         
-        If any internal amphibrach, return fail and make suggetion. Replace
+        If any internal amphibrach, return fail and make suggestion. Replace
         |x/|/x/| with |x//|x/| on general principle of greater regularity.
         (I say the bacchius is less disruptive than the cretic. This is not
         always right! but when not, it's because of syntax, which we know

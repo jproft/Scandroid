@@ -11,8 +11,8 @@
 #
 # Main module of the Scandroid, the Python version of the verse scanner.
 # This module handles the wxPython frame and most of the interface, 
-# including the menus and button-presses that control everything. The Frame 
-# owns a ScansionMachine that does all the interesting work.
+# including the menus and button-presses that control everything.
+# The Frame owns a ScansionMachine that does all the interesting work.
 
 # Version 1.5 (somewhat arbitrarily numbered) is the first revision in about
 # seven years.  The occasion was Jim O'Connor's coming on board to fix
@@ -117,7 +117,7 @@ class ScandroidFrame(wx.Frame):
         
         # -- CREATION OF STATUS BAR --
         sb = wx.StatusBar(self, -1)
-        sb.SetFieldsCount(3)             # inital dummy field prevents
+        sb.SetFieldsCount(3)             # initial dummy field prevents
         sb.SetStatusWidths([0, -1, -3])  # metron from being overwritten
         
         # -- SETTING OF STATUS BAR --

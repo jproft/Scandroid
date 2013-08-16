@@ -79,7 +79,7 @@ class Positioner:
             if len(self.possLexicals) == 0:
                 self.possLexicals.append(self.GetMarks())
             halfway = len(self.possLexicals)
-            self.possLexicals *= 2			# each amgibuity doubles the list
+            self.possLexicals *= 2			# each ambiguity doubles the list
             for pL in range(0, halfway):
                 if len(syls) == 1: self.possLexicals[pL] += STRESS
                 else: self.possLexicals[pL] += (STRESS + SLACK)
@@ -124,7 +124,7 @@ class Positioner:
         """Insert given mark into charlist of (spaced) scansion marks.
         
         Place mark ('/', 'x', or '%') over the middle of the syllable. Note
-        that 'syllable' means something diffeernt in AddFootDivMark().
+        that 'syllable' means something different in AddFootDivMark().
         """
         if syllable > len(self.sylmids): return		# major woops
         self.charlist[self.sylmids[syllable]] = mark
